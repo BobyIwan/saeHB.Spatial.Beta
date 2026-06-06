@@ -1,16 +1,36 @@
 Package: saeHB.Spatial.Beta
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Small Area Estimation Hierarchical Bayes for Spatial Beta Model
 Version: 0.1.0
 Authors@R: c(
-    person(
-      "Jane", "Doe",
-      email = "jane@example.com",
-      role = c("aut", "cre")
-    )
+    person(given = "Boby", family = "Iwan", role = c("aut", "cre"), email = "bobyiwanboby2122@gmail.com"),
+    person(given = "Cucu", family = "Sumarni", role = "aut")
   )
-Description: More about what it does (maybe more than one line).
-    Continuation lines should be indented.
-License: What license is it under?
+Description: Provides several functions and datasets for area-level Small Area Estimation 
+    using the Hierarchical Bayesian (HB) method. Model-based estimators are designed for 
+    variables of interest that follow a Beta distribution. The package supports spatial 
+    structures under the Simultaneous Autoregressive (SAR) and Leroux Conditional 
+    Autoregressive (CAR) models, accommodating survey design effect (DEFF) adjustments. 
+    The 'rjags' package is employed to obtain parameter estimates via Gibbs Sampling. 
+    For the reference, see Rao and Molina (2015) <doi:10.1002/9781118735855>.
+License: GPL-3
 Encoding: UTF-8
 LazyData: true
+Depends: 
+    R (>= 4.1.0)
+Imports: 
+    rjags,
+    coda,
+    stats,
+    grDevices,
+    graphics,
+    sf,
+    spdep
+SystemRequirements: JAGS (http://mcmc-jags.sourceforge.net)
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
+URL: https://github.com/BobyIwan/saeHB.Spatial.Beta
+BugReports: https://github.com/BobyIwan/saeHB.Spatial.Beta/issues
+Config/roxygen2/version: 8.0.0
