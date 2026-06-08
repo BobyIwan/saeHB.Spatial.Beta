@@ -2,14 +2,14 @@
 % Please edit documentation in R/betaNonSpatial.R
 \name{betaNonSpatial}
 \alias{betaNonSpatial}
-\title{Small Area Estimation using Hierarchical Bayesian Method under Beta Model}
+\title{Small Area Estimation using Hierarchical Bayesian Method under Non-Spatial Beta Model}
 \usage{
 betaNonSpatial(
   formula,
   data,
   iter.update = 3,
   iter.mcmc = 2000,
-  thin = 3,
+  thin = 1,
   burn.in = 1000,
   chains = 2,
   n.adapt = 1000,
@@ -27,46 +27,65 @@ betaNonSpatial(
 
 \item{data}{The data frame.}
 
-\item{iter.update}{Number of updates performed in Empirical Bayes calibration with default \code{3}.}
+\item{iter.update}{Number of updates performed during Gibbs sampling. Default is \code{3}.}
 
-\item{iter.mcmc}{Number of total iterations per chain performed in MCMC sampling with default \code{2000}.}
+\item{iter.mcmc}{Total number of MCMC iterations per chain. Default is \code{2000}.}
 
-\item{thin}{Thinning rate performed in MCMC sampling and it must be a positive integer with default \code{3}.}
+\item{thin}{Thinning rate for MCMC sampling. Must be a positive integer. Default is \code{1}.}
 
-\item{burn.in}{Number of burn-in periods in MCMC sampling with default \code{1000}.}
+\item{burn.in}{Number of burn-in iterations discarded from each MCMC chain. Default is \code{1000}.}
 
-\item{chains}{Number of parallel chains for MCMC sampling with default \code{2}.}
+\item{chains}{Number of parallel MCMC chains. Default is \code{2}.}
 
-\item{n.adapt}{Number of iterations for adaptation phase in JAGS with default \code{1000}.}
+\item{n.adapt}{Number of iterations used for the adaptation phase in JAGS. Default is \code{1000}.}
 
 \item{coef}{Optional vector containing the mean of the prior distribution of the regression model coefficients.}
 
 \item{var.coef}{Optional vector containing the variances of the prior distribution of the regression model coefficients.}
 
-\item{tau.v}{Initial value or shape for the random effect precision with default \code{1}.}
+\item{tau.v}{Initial value or shape for the random effect precision. Default is \code{1}.}
 
-\item{seed}{An integer seed for the random number generator to ensure reproducibility with default \code{123}.}
+\item{seed}{An integer seed for the random number generator to ensure reproducibility. Default is \code{123}.}
 
-\item{quiet}{Logical; if \code{TRUE}, suppresses the JAGS terminal logging output with default \code{TRUE}.}
+\item{quiet}{Logical; if \code{TRUE}, suppresses the JAGS terminal output. Default is \code{TRUE}.}
 
-\item{plot}{Logical; if \code{TRUE}, generates MCMC diagnostic autocorrelation and trace plots with default \code{TRUE}.}
+\item{plot}{Logical; if \code{TRUE}, generates MCMC diagnostic trace, autocorrelation, and density plots. Default is \code{TRUE}.}
 
-\item{keep.fit}{Logical; if \code{TRUE}, keeps the raw MCMC \code{coda} samples object in the output list with default \code{FALSE}.}
+\item{keep.fit}{Logical; if \code{TRUE}, keeps the raw MCMC \code{coda} samples object in the output list. Default is \code{FALSE}.}
 }
 \value{
 This function returns a list with the following objects:
 \describe{
-  \item{Est}{A dataframe that contains the values, standard deviation, and quantile of Small Area mean Estimates using Hierarchical Bayes method}
-  \item{refVar}{Estimated independent random effect variance \eqn{(\sigma_{v}^{2})}}
-  \item{randeff}{A dataframe that contains the values, standard deviation, and quantile of estimated independent random effects \eqn{(v)} for each area}
-  \item{coefficient}{A dataframe that contains the estimated model coefficients \eqn{(\beta)} and the global precision parameter \eqn{(\phi)}, including Rhat and Effective Sample Size (ESS)}
+  \item{Est}{A dataframe containing the posterior mean estimates, posterior standard deviations, and 95\% credible intervals of the small area means estimated using the Hierarchical Bayesian method.}
+  \item{refVar}{A dataframe containing the posterior mean estimates, posterior standard deviations, and 95\% credible intervals of the global random effect variance \eqn{(\sigma_{v}^{2})}.}
+  \item{randeff}{A dataframe containing the posterior mean estimates, posterior standard deviations, and 95\% credible intervals of the area-specific random effects \eqn{(v)}.}
+  \item{coefficient}{A dataframe containing the posterior mean estimates, posterior standard deviations, 95\% credible intervals, Rhat convergence diagnostics, and effective sample sizes (ESS) for the regression coefficients \eqn{(\beta)} and and the global precision parameter \eqn{(\phi)}.}
 }
 }
 \description{
 \itemize{
   \item {This function is implemented to variable of interest \eqn{y} that is assumed to follow a Beta distribution. The range of data is \eqn{0 < y < 1}.}
-  \item {This function gives estimation of small area means under a non-spatial Beta Model using Hierarchical Bayesian Method.}
+  \item {This function gives estimation of small area means under Non-Spatial Model using Hierarchical Bayesian Method.}
   \item {The random effects are assumed to be independent and identically distributed (IID) normal variables.}
   \item {Unlike the Beta-DEFF model, this function does not use design effect adjustments. Instead, it estimates a global precision parameter \eqn{(\phi)} from the data.}
 }
+}
+\examples{
+# Load dataset
+data(dataBeta)
+
+\donttest{
+# Fit the Non-Spatial Beta model
+result <- betaNonSpatial(
+  formula = y ~ x1 + x2,
+  data = dataBeta
+)
+
+# View the estimation results
+result$Est
+result$refVar
+result$randeff
+result$coefficient
+}
+
 }

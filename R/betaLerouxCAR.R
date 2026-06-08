@@ -8,28 +8,48 @@
 #' }
 #'
 #' @param formula Formula that describes the fitted model.
-#' @param proxmat \eqn{N \times N} proximity matrix with values in the interval \code{[0,1]} containing the proximities between the areas.
+#' @param proxmat \eqn{N \times N} spatial binary adjacency matrix with values \code{0} or \code{1} representing the neighborhood structure between areas. The diagonal elements must be \code{0}.
 #' @param data The data frame.
-#' @param iter.update Number of updates performed in Empirical Bayes calibration with default \code{3}.
-#' @param iter.mcmc Number of total iterations per chain performed in MCMC sampling with default \code{2000}.
-#' @param thin Thinning rate performed in MCMC sampling and it must be a positive integer with default \code{3}.
-#' @param burn.in Number of burn-in periods in MCMC sampling with default \code{1000}.
-#' @param chains Number of parallel chains for MCMC sampling with default \code{2}.
-#' @param n.adapt Number of iterations for adaptation phase in JAGS with default \code{1000}.
+#' @param iter.update Number of updates performed during Gibbs sampling. Default is \code{3}.
+#' @param iter.mcmc Total number of MCMC iterations per chain. Default is \code{2000}.
+#' @param thin Thinning rate for MCMC sampling. Must be a positive integer. Default is \code{1}.
+#' @param burn.in Number of burn-in iterations discarded from each MCMC chain. Default is \code{1000}.
+#' @param chains Number of parallel MCMC chains. Default is \code{2}.
+#' @param n.adapt Number of iterations used for the adaptation phase in JAGS. Default is \code{1000}.
 #' @param coef Optional vector containing the mean of the prior distribution of the regression model coefficients.
 #' @param var.coef Optional vector containing the variances of the prior distribution of the regression model coefficients.
-#' @param tau.v Initial value or shape for the random effect precision with default \code{1}.
-#' @param seed An integer seed for the random number generator to ensure reproducibility with default \code{123}.
-#' @param quiet Logical; if \code{TRUE}, suppresses the JAGS terminal logging output with default \code{TRUE}.
-#' @param plot Logical; if \code{TRUE}, generates MCMC diagnostic autocorrelation and trace plots with default \code{TRUE}.
-#' @param keep.fit Logical; if \code{TRUE}, keeps the raw MCMC \code{coda} samples object in the output list with default \code{FALSE}.
+#' @param tau.v Initial value or shape for the random effect precision. Default is \code{1}.
+#' @param seed An integer seed for the random number generator to ensure reproducibility. Default is \code{123}.
+#' @param quiet Logical; if \code{TRUE}, suppresses the JAGS terminal output. Default is \code{TRUE}.
+#' @param plot Logical; if \code{TRUE}, generates MCMC diagnostic trace, autocorrelation, and density plots. Default is \code{TRUE}.
+#' @param keep.fit Logical; if \code{TRUE}, keeps the raw MCMC \code{coda} samples object in the output list. Default is \code{FALSE}.
 #'
 #' @return This function returns a list with the following objects:
 #' \describe{
-#'   \item{Est}{A dataframe that contains the values, standard deviation, and quantile of Small Area mean Estimates using Hierarchical Bayes method}
-#'   \item{refVar}{Estimated random effect variance \eqn{(\sigma_{v}^{2})}}
-#'   \item{randeff}{A dataframe that contains the values, standard deviation, and quantile of estimated random effects \eqn{(v)} for each area}
-#'   \item{coefficient}{A dataframe that contains the estimated model coefficients \eqn{(\beta)}, the spatial autoregressive parameter \eqn{(\rho)}, and the global precision parameter \eqn{(\phi)}, including Rhat and Effective Sample Size (ESS)}
+#'   \item{Est}{A dataframe containing the posterior mean estimates, posterior standard deviations, and 95\% credible intervals of the small area means estimated using the Hierarchical Bayesian method.}
+#'   \item{refVar}{A dataframe containing the posterior mean estimates, posterior standard deviations, and 95\% credible intervals of the area-specific random effect variances \eqn{(a.var)}.}
+#'   \item{randeff}{A dataframe containing the posterior mean estimates, posterior standard deviations, and 95\% credible intervals of the area-specific random effects \eqn{(v)}.}
+#'   \item{coefficient}{A dataframe containing the posterior mean estimates, posterior standard deviations, 95\% credible intervals, Rhat convergence diagnostics, and Effective Sample Sizes (ESS) for the regression coefficients \eqn{(\beta)}, the spatial autoregressive parameter \eqn{(\rho)}, and and the global precision parameter \eqn{(\phi)}.}
+#' }
+#'
+#' @examples
+#' # Load dataset
+#' data(dataBeta)
+#' data(adjacency_mat)
+#'
+#' \donttest{
+#' # Fit the Spatial Beta-Leroux CAR model
+#' result <- betaLerouxCAR(
+#'   formula = y ~ x1 + x2,
+#'   proxmat = adjacency_mat,
+#'   data = dataBeta
+#' )
+#'
+#' # View the estimation results
+#' result$Est
+#' result$refVar
+#' result$randeff
+#' result$coefficient
 #' }
 #'
 #' @import rjags
@@ -41,7 +61,7 @@
 #' @export betaLerouxCAR
 betaLerouxCAR <- function(formula, proxmat, data,
                           iter.update = 3, iter.mcmc = 2000,
-                          thin = 3, burn.in = 1000, chains = 2, n.adapt = 1000,
+                          thin = 1, burn.in = 1000, chains = 2, n.adapt = 1000,
                           coef = NULL, var.coef = NULL, tau.v = 1,
                           seed = 123, quiet = TRUE, plot = TRUE, keep.fit = FALSE) {
 
@@ -221,8 +241,9 @@ betaLerouxCAR <- function(formula, proxmat, data,
   randeff <- data.frame(res_sum$statistics[v_idx, 1:2], res_sum$quantiles[v_idx, c(1,5)])
   colnames(randeff) <- c("Estimate", "Est.Error", "l-95% CI", "u-95% CI")
 
-  sigma2_v_mean <- res_sum$statistics[grep("^sigma2_v", rownames(res_sum$statistics)), "Mean"]
-  refVar <- sigma2_v_mean
+  a_var_idx <- grep("^a\\.var\\[", rownames(res_sum$statistics))
+  refVar <- data.frame(res_sum$statistics[a_var_idx, 1:2], res_sum$quantiles[a_var_idx, c(1,5)])
+  colnames(refVar) <- c("Estimate", "Est.Error", "l-95% CI", "u-95% CI")
 
   b_idx   <- grep("^beta\\[", rownames(res_sum$statistics))
   rho_idx <- grep("^rho", rownames(res_sum$statistics))

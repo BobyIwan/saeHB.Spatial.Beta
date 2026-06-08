@@ -1,36 +1,56 @@
-#' @title Small Area Estimation using Hierarchical Bayesian Method under Beta Model with Design Effect
+#' @title Small Area Estimation using Hierarchical Bayesian Method under Non-Spatial Beta Model with Design Effect
 #'
 #' @description
 #' \itemize{
 #'   \item {This function is implemented to variable of interest \eqn{y} that is assumed to follow a Beta distribution. The range of data is \eqn{0 < y < 1}.}
-#'   \item {This function gives estimation of small area means under a non-spatial Beta Model using Hierarchical Bayesian Method with Design Effect (DEFF) adjustment.}
 #'   \item {The random effects are assumed to be independent and identically distributed (IID) normal variables.}
+#'   \item {This function gives estimation of small area means under Non-Spatial Model using Hierarchical Bayesian Method with Design Effect (DEFF) adjustment.}
 #' }
 #'
 #' @param formula Formula that describes the fitted model.
 #' @param DEFF String specifying the name of the design effect variable in the data frame.
 #' @param n_i String specifying the name of the sample size variable in the data frame.
 #' @param data The data frame.
-#' @param iter.update Number of updates performed in Empirical Bayes calibration with default \code{3}.
-#' @param iter.mcmc Number of total iterations per chain performed in MCMC sampling with default \code{2000}.
-#' @param thin Thinning rate performed in MCMC sampling and it must be a positive integer with default \code{3}.
-#' @param burn.in Number of burn-in periods in MCMC sampling with default \code{1000}.
-#' @param chains Number of parallel chains for MCMC sampling with default \code{2}.
-#' @param n.adapt Number of iterations for adaptation phase in JAGS with default \code{1000}.
+#' @param iter.update Number of updates performed during Gibbs sampling. Default is \code{3}.
+#' @param iter.mcmc Total number of MCMC iterations per chain. Default is \code{2000}.
+#' @param thin Thinning rate for MCMC sampling. Must be a positive integer. Default is \code{1}.
+#' @param burn.in Number of burn-in iterations discarded from each MCMC chain. Default is \code{1000}.
+#' @param chains Number of parallel MCMC chains. Default is \code{2}.
+#' @param n.adapt Number of iterations used for the adaptation phase in JAGS. Default is \code{1000}.
 #' @param coef Optional vector containing the mean of the prior distribution of the regression model coefficients.
 #' @param var.coef Optional vector containing the variances of the prior distribution of the regression model coefficients.
-#' @param tau.v Initial value or shape for the random effect precision with default \code{1}.
-#' @param seed An integer seed for the random number generator to ensure reproducibility with default \code{123}.
-#' @param quiet Logical; if \code{TRUE}, suppresses the JAGS terminal logging output with default \code{TRUE}.
-#' @param plot Logical; if \code{TRUE}, generates MCMC diagnostic autocorrelation and trace plots with default \code{TRUE}.
-#' @param keep.fit Logical; if \code{TRUE}, keeps the raw MCMC \code{coda} samples object in the output list with default \code{FALSE}.
+#' @param tau.v Initial value or shape for the random effect precision. Default is \code{1}.
+#' @param seed An integer seed for the random number generator to ensure reproducibility. Default is \code{123}.
+#' @param quiet Logical; if \code{TRUE}, suppresses the JAGS terminal output. Default is \code{TRUE}.
+#' @param plot Logical; if \code{TRUE}, generates MCMC diagnostic trace, autocorrelation, and density plots. Default is \code{TRUE}.
+#' @param keep.fit Logical; if \code{TRUE}, keeps the raw MCMC \code{coda} samples object in the output list. Default is \code{FALSE}.
 #'
 #' @return This function returns a list with the following objects:
 #' \describe{
-#'   \item{Est}{A dataframe that contains the values, standard deviation, and quantile of Small Area mean Estimates using Hierarchical Bayes method}
-#'   \item{refVar}{Estimated independent random effect variance \eqn{(\sigma_{v}^{2})}}
-#'   \item{randeff}{A dataframe that contains the values, standard deviation, and quantile of estimated independent random effects \eqn{(v)} for each area}
-#'   \item{coefficient}{A dataframe that contains the estimated model coefficients \eqn{(\beta)}, including Rhat and Effective Sample Size (ESS)}
+#'   \item{Est}{A dataframe containing the posterior mean estimates, posterior standard deviations, and 95\% credible intervals of the small area means estimated using the Hierarchical Bayesian method.}
+#'   \item{refVar}{A dataframe containing the posterior mean estimates, posterior standard deviations, and 95\% credible intervals of the global random effect variance \eqn{(\sigma_{v}^{2})}.}
+#'   \item{randeff}{A dataframe containing the posterior mean estimates, posterior standard deviations, and 95\% credible intervals of the area-specific random effects \eqn{(v)}.}
+#'   \item{coefficient}{A dataframe containing the posterior mean estimates, posterior standard deviations, 95\% credible intervals, Rhat convergence diagnostics, and effective sample sizes (ESS) for the regression coefficients \eqn{(\beta)}.}
+#' }
+#'
+#' @examples
+#' # Load dataset
+#' data(dataBeta)
+#'
+#' \donttest{
+#' # Fit the Non-Spatial Beta model with Design Effect
+#' result <- betaDeffNonSpatial(
+#'   formula = y ~ x1 + x2,
+#'   DEFF = "deff",
+#'   n_i = "n_i",
+#'   data = dataBeta
+#' )
+#'
+#' # View the estimation results
+#' result$Est
+#' result$refVar
+#' result$randeff
+#' result$coefficient
 #' }
 #'
 #' @import rjags
@@ -42,7 +62,7 @@
 #' @export betaDeffNonSpatial
 betaDeffNonSpatial <- function(formula, DEFF, n_i, data,
                                iter.update = 3, iter.mcmc = 2000,
-                               thin = 3, burn.in = 1000, chains = 2, n.adapt = 1000,
+                               thin = 1, burn.in = 1000, chains = 2, n.adapt = 1000,
                                coef = NULL, var.coef = NULL, tau.v = 1,
                                seed = 123, quiet = TRUE, plot = TRUE, keep.fit = FALSE) {
 
@@ -96,9 +116,7 @@ betaDeffNonSpatial <- function(formula, DEFF, n_i, data,
       phi[i] <- (n_i[i] / DEFF[i]) - 1
 
       logit(mu[i]) <- beta[1] + inprod(beta[2:(P+1)], X[i, ]) + v[i]
-
       v[i] ~ dnorm(0, tau_v)
-      a.var[i] <- 1 / tau_v
     }
 
     for (k in 1:(P+1)) {
@@ -119,9 +137,7 @@ betaDeffNonSpatial <- function(formula, DEFF, n_i, data,
 
     for (j in 1:N) {
       logit(mu[j]) <- beta[1] + inprod(beta[2:(P+1)], X[j, ]) + v[j]
-
       v[j] ~ dnorm(0, tau_v)
-      a.var[j] <- 1 / tau_v
     }
 
     for (k in 1:(P+1)) {
@@ -131,7 +147,7 @@ betaDeffNonSpatial <- function(formula, DEFF, n_i, data,
     sigma2_v <- 1 / tau_v
   }"
 
-  params <- c("mu", "a.var", "beta", "tau_v", "sigma2_v", "v")
+  params <- c("mu", "beta", "tau_v", "sigma2_v", "v")
 
   if (!any(is.na(y_all))) {
     for (i in 1:iter.update) {
@@ -201,8 +217,10 @@ betaDeffNonSpatial <- function(formula, DEFF, n_i, data,
   randeff <- data.frame(res_sum$statistics[v_idx, 1:2], res_sum$quantiles[v_idx, c(1,5)])
   colnames(randeff) <- c("Estimate", "Est.Error", "l-95% CI", "u-95% CI")
 
-  sigma2_v_mean <- res_sum$statistics[grep("^sigma2_v", rownames(res_sum$statistics)), "Mean"]
-  refVar <- sigma2_v_mean
+  sig_idx <- grep("^sigma2_v", rownames(res_sum$statistics))
+  refVar <- data.frame(rbind(res_sum$statistics[sig_idx, 1:2]), rbind(res_sum$quantiles[sig_idx, c(1,5)]))
+  rownames(refVar) <- "sigma2_v"
+  colnames(refVar) <- c("Estimate", "Est.Error", "l-95% CI", "u-95% CI")
 
   b_idx <- grep("^beta\\[", rownames(res_sum$statistics))
 
@@ -210,7 +228,6 @@ betaDeffNonSpatial <- function(formula, DEFF, n_i, data,
   coef_quant <- res_sum$quantiles[b_idx, c(1,5), drop = FALSE]
   coef_rhat  <- Rhat_raw[b_idx]
   coef_ess   <- ESS[b_idx]
-
   coefficient <- data.frame(coef_stats, coef_quant, coef_rhat, coef_ess)
 
   b_varnames <- character(nvar)
@@ -228,7 +245,8 @@ betaDeffNonSpatial <- function(formula, DEFF, n_i, data,
   if (keep.fit) result$fit <- samps1
 
   if (plot) {
-    result_mcmc <- samps1[, b_idx, drop = FALSE]
+    plot_idx <- b_idx
+    result_mcmc <- samps1[, plot_idx, drop = FALSE]
     coda::varnames(result_mcmc) <- rownames(coefficient)
 
     oldpar <- graphics::par(no.readonly = TRUE)

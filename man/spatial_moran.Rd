@@ -46,3 +46,23 @@ A list with class \code{htest} containing the following components:
   \item {It supports both analytical (randomization) and Monte Carlo permutation approaches.}
 }
 }
+\examples{
+# Load datasets
+data(dataBeta)
+data(weight_mat)
+
+# Convert the spatial weights matrix to a 'listw' object
+W_listw <- spdep::mat2listw(weight_mat, style = "W", zero.policy = TRUE)
+
+# Perform Moran's I test (Analytical approach)
+spatial_moran(x = dataBeta$y, listw = W_listw)
+
+# Perform Moran's I test (Monte Carlo permutation approach)
+spatial_moran(x = dataBeta$y, listw = W_listw, mc = TRUE, nsim = 99)
+
+# Handling Missing Values automatically (na.rm = TRUE is default)
+y_with_na <- dataBeta$y
+y_with_na[c(2, 5)] <- NA
+spatial_moran(x = y_with_na, listw = W_listw, na.rm = TRUE)
+
+}

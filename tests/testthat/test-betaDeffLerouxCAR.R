@@ -75,7 +75,7 @@ test_that("Unit Testing for betaDeffLerouxCAR: Error Handling", {
   data_invalid_n$deff[1] <- 2.0
   expect_error(
     betaDeffLerouxCAR(y ~ x1 + x2, "deff", "n_i", adjacency_mat, data_invalid_n, plot = FALSE),
-    "There is at least one sampled area where n_i <= DEFF"
+    "There is at least one sampled area where n_i <= DEFF. Effective sample size must be > 1"
   )
 
   # Case 8: Proximity matrix dimension mismatch

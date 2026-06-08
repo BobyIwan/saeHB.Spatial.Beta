@@ -53,7 +53,7 @@ build_W(
 
 \item{lonlat}{Logical; if \code{TRUE}, coordinates are treated as Longitude/Latitude and great-circle spherical distances are calculated. Default is \code{TRUE}.}
 
-\item{style}{A string specifying the row-standardization style (e.g., \code{"W"} for row-standardized). Default is \code{"W"}.}
+\item{style}{A character string specifying the spatial weights coding scheme (\code{"W"} for row-standardized or \code{"B"} for binary). Default is \code{"W"}.}
 
 \item{zero.policy}{Logical; if \code{TRUE}, areas with no neighbors are allowed to have zero-weight rows. Default is \code{TRUE}.}
 
@@ -80,4 +80,35 @@ Depending on the \code{output} argument, this function returns:
   \item {It supports various methods including Contiguity (Queen, Rook, Bishop), Distance-based (K-Nearest Neighbors, Inverse Distance, Exponential), and Kernel-based weights.}
   \item {It also provides a robust fallback mechanism to automatically connect isolated areas (islands) when using contiguity methods.}
 }
+}
+\examples{
+# Generate random Longitude and Latitude coordinates for 10 areas
+# (e.g., somewhere roughly in Indonesia)
+set.seed(123)
+lon <- runif(10, min = 100, max = 140) # Longitude
+lat <- runif(10, min = -10, max = 10)  # Latitude
+coords <- cbind(lon, lat)
+
+# Build KNN distance-based weights (k = 2) using spherical distance
+W_knn <- build_W(
+  data = NULL,
+  coords = coords,
+  method = "distance",
+  distance = "knn",
+  k = 2,
+  lonlat = TRUE,
+  output = "matrix"
+)
+
+# Build Gaussian Kernel weights using 500 km bandwidth
+W_kernel <- build_W(
+  data = NULL,
+  coords = coords,
+  method = "kernel",
+  kernel = "gaussian",
+  bandwidth = 500,
+  lonlat = TRUE,
+  output = "matrix"
+)
+
 }

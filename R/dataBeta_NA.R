@@ -8,7 +8,7 @@
 #' @format A data frame with 100 rows and 6 columns:
 #' \describe{
 #'   \item{domain}{Area ID/name}
-#'   \item{y}{Direct estimates of the proportion/variable of interest (0 < y < 1)}
+#'   \item{y}{Direct estimates of the proportion/variable of interest (0 < y < 1). Contains \code{NA} values.}
 #'   \item{x1}{Auxiliary variable 1}
 #'   \item{x2}{Auxiliary variable 2}
 #'   \item{n_i}{Sample size for each area}

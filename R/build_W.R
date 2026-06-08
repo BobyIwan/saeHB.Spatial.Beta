@@ -20,7 +20,7 @@
 #' @param kernel A string indicating the type of spatial kernel. Options are \code{"uniform"}, \code{"gaussian"}, \code{"triangular"}, \code{"epanechnikov"}, or \code{"quartic"}.
 #' @param bandwidth A numeric specifying the bandwidth (\eqn{h}) for kernel weights. Required if \code{method = "kernel"}.
 #' @param lonlat Logical; if \code{TRUE}, coordinates are treated as Longitude/Latitude and great-circle spherical distances are calculated. Default is \code{TRUE}.
-#' @param style A string specifying the row-standardization style (e.g., \code{"W"} for row-standardized). Default is \code{"W"}.
+#' @param style A character string specifying the spatial weights coding scheme (\code{"W"} for row-standardized or \code{"B"} for binary). Default is \code{"W"}.
 #' @param zero.policy Logical; if \code{TRUE}, areas with no neighbors are allowed to have zero-weight rows. Default is \code{TRUE}.
 #' @param fallback A string indicating the fallback method for isolated areas (without neighbors) when using contiguity. Options are \code{"knn"}, \code{"distance"}, or \code{"none"}. Default is \code{"knn"}.
 #' @param fallback_k An integer specifying the number of neighbors for the fallback method. Default is \code{2}.
@@ -34,6 +34,36 @@
 #'   \item \code{"nb"}: An \code{nb} (neighborhood) object.
 #'   \item \code{"all"}: A list containing \code{W} (matrix), \code{listw}, \code{nb}, \code{info} (method details), and \code{diag} (diagnostic metrics for isolates and fallback).
 #' }
+#'
+#' @examples
+#' # Generate random Longitude and Latitude coordinates for 10 areas
+#' # (e.g., somewhere roughly in Indonesia)
+#' set.seed(123)
+#' lon <- runif(10, min = 100, max = 140) # Longitude
+#' lat <- runif(10, min = -10, max = 10)  # Latitude
+#' coords <- cbind(lon, lat)
+#'
+#' # Build KNN distance-based weights (k = 2) using spherical distance
+#' W_knn <- build_W(
+#'   data = NULL,
+#'   coords = coords,
+#'   method = "distance",
+#'   distance = "knn",
+#'   k = 2,
+#'   lonlat = TRUE,
+#'   output = "matrix"
+#' )
+#'
+#' # Build Gaussian Kernel weights using 500 km bandwidth
+#' W_kernel <- build_W(
+#'   data = NULL,
+#'   coords = coords,
+#'   method = "kernel",
+#'   kernel = "gaussian",
+#'   bandwidth = 500,
+#'   lonlat = TRUE,
+#'   output = "matrix"
+#' )
 #'
 #' @import sf
 #' @import spdep
