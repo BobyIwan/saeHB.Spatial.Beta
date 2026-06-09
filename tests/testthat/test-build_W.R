@@ -1,5 +1,3 @@
-library(sf)
-
 boundary <- sf::st_sfc(sf::st_point(c(0,0)), sf::st_point(c(3,3)))
 grid_geom <- sf::st_make_grid(boundary, n = c(3, 3))
 mock_poly <- sf::st_sf(id = 1:9, geometry = grid_geom)
