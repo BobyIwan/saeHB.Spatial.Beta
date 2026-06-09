@@ -30,7 +30,8 @@ SystemRequirements: JAGS (http://mcmc-jags.sourceforge.net)
 Suggests: 
     knitr,
     rmarkdown,
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    ggplot2
 VignetteBuilder: knitr
 URL: https://github.com/BobyIwan/saeHB.Spatial.Beta
 BugReports: https://github.com/BobyIwan/saeHB.Spatial.Beta/issues

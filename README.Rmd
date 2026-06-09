@@ -1,0 +1,94 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+# saeHB.Spatial.Beta
+
+Provides several functions and datasets for area-level Small Area Estimation using the Hierarchical Bayesian (HB) method. Model-based estimators are designed for variables of interest that follow a Beta distribution (proportions bounded between 0 and 1). The package supports spatial structures under the Simultaneous Autoregressive (SAR) model and the Leroux Conditional Autoregressive (CAR) model. It also accommodates survey design effect (DEFF) adjustments to handle complex survey data. The `rjags` package is employed to obtain parameter estimates via Markov Chain Monte Carlo (MCMC).For the reference, see Rao and Molina (2015) <doi:10.1002/9781118735855>.
+
+
+## Author
+Boby Iwan, Cucu Sumarni
+
+## Maintainer
+Boby Iwan <bobyiwanboby2122@gmail.com>
+
+## Functions
+* `betaDeffSAR()` Estimates small area means using Spatial SAR Model with Beta distribution and Design Effect (DEFF) adjustments.
+* `betaSAR()` Estimates small area means using Spatial SAR Model with Beta distribution without DEFF adjustments.
+* `betaDeffLerouxCAR()` Estimates small area means using Spatial Leroux CAR Model with Beta distribution and Design Effect (DEFF) adjustments.
+* `betaLerouxCAR()` Estimates small area means using Spatial Leroux CAR Model with Beta distribution without DEFF adjustments.
+* `betaDeffNonSpatial()` Estimates small area means using a Non-Spatial Beta Model with Independent and Identically Distributed (IID) random effects and DEFF adjustments.
+* `betaNonSpatial()` Estimates small area means using a Non-Spatial Beta Model without DEFF adjustments.
+* `build_W()` A utility function to construct spatial weights matrices (contiguity, distance, or kernel) required for spatial modeling.
+* `spatial_moran()` A diagnostic function to perform Moran's I test for spatial autocorrelation.
+
+## Installation
+You can install the development version of saeHB.Spatial.Beta from [GitHub](https://github.com/) with:
+
+``` r
+# install.packages("devtools")
+devtools::install_github("BobyIwan/saeHB.Spatial.Beta")
+```
+
+## Example
+
+This is a basic example of using the `betaDeffSAR()` function to make an estimate based on synthetic data in this package:
+
+```{r example, results='hide', message=FALSE, warning=FALSE}
+library(saeHB.Spatial.Beta)
+
+# Load dataset and proximity matrix
+data(dataBeta)
+data(weight_mat)
+
+# Fitting the Spatial SAR model
+model_sarDeff <- betaDeffSAR(
+  formula = y ~ x1 + x2,
+  DEFF = "deff",
+  n_i = "n_i",
+  proxmat = weight_mat,
+  data = dataBeta
+)
+```
+
+Extract the mean estimation for the areas:
+
+```{r}
+head(model_sarDeff$Est)
+```
+
+Extract the estimated model coefficients:
+
+```{r}
+model_sarDeff$coefficient
+```
+
+Extract the random effect for the areas:
+
+```{r}
+model_sarDeff$randeff
+```
+
+Extract the random effect variance for the areas:
+
+```{r}
+model_sarDeff$refVar
+```
+
+## References
+* Rao, J. N. K., & Molina, I. (2015). Small Area Estimation (2nd Edition). New Jersey: John Wiley and Sons, Inc. <doi:10.1002/9781118735855>.
+* Kubacki, J., & Jedrzejczak, A. (2016). Small Area Estimation of Income Under Spatial SAR Model. Statistics in Transition New Series, Vol. 17, No. 3, pp. 365--390. <doi:10.59170/stattrans-2016-022>.
+* Leroux, B. G., Lei, X., & Breslow, N. (2000). Estimation of Disease Rates in Small Areas: A New Mixed Model for Spatial Dependence. In M. E. Halloran & D. Berry (Eds.), Statistical Models in Epidemiology, the Environment, and Clinical Trials (Vol. 116, pp. 179--191). New York: Springer. <doi:10.1007/978-1-4612-1284-3_4>.
+* Chung, H. C., & Datta, G. S. (2020). Bayesian Hierarchical Spatial Models for Small Area Estimation. Research Report Series. Washington, D.C.: U.S. Census Bureau.

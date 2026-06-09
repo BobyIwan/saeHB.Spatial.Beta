@@ -1,0 +1,150 @@
+---
+title: "Getting Started with saeHB.Spatial.Beta"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting Started with saeHB.Spatial.Beta}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+## Introduction
+
+The `saeHB.Spatial.Beta` package provides several functions to estimate small area proportions using Hierarchical Bayesian (HB) methods under spatial and non-spatial models. This package is specifically designed to accommodate survey design effects (DEFF) and handle non-sampled areas.
+
+In this vignette, we will demonstrate a complete analytical workflow:
+
+1. Fitting a Non-Spatial Beta Model.
+2. Checking spatial autocorrelation on the random effects using two approaches of Moran's I (Analytical and Monte Carlo).
+3. Fitting a Spatial SAR Beta Model.
+4. Comparing the precision using Relative Standard Error (RSE) or Coefficient of Variation (CV).
+
+## Step 1: Preparation and Data Loading
+
+First, load the package along with the provided synthetic dataset (`dataBeta`) and proximity matrix (`weight_mat`). We will also load `ggplot2` for visualization.
+
+```{r setup}
+library(saeHB.Spatial.Beta)
+library(ggplot2)
+
+# Load data and weight matrix
+data("dataBeta")
+data("weight_mat")
+
+# Calculate Variance of Direct Estimator for proportion data considering DEFF
+# var(y) = [y * (1 - y) / n_i] * deff
+var_direct <- (dataBeta$y * (1 - dataBeta$y) / dataBeta$n_i) * dataBeta$deff
+
+# Calculate Relative Standard Error (RSE) or CV of Direct Estimation
+dataBeta$rse_direct <- (sqrt(var_direct) / dataBeta$y) * 100
+```
+
+## Step 2: Fitting the Non-Spatial Model
+
+We begin by fitting a baseline non-spatial model that accommodates the survey design effect. Here, we use the default Markov Chain Monte Carlo (MCMC) iterations.
+
+```{r ns-model, results='hide'}
+mod_ns <- betaDeffNonSpatial(
+  formula = y ~ x1 + x2,
+  DEFF = "deff",
+  n_i = "n_i",
+  data = dataBeta
+)
+```
+
+Extract the RSE (or CV) for the non-spatial estimates using the exact column names (Estimate and Est.Error):
+
+```{r ns-rse}
+rse_ns <- (mod_ns$Est$Est.Error / mod_ns$Est$Estimate) * 100
+```
+
+## Step 3: Spatial Autocorrelation Diagnostic (Moran's I)
+
+To determine if a spatial model is necessary, we evaluate the spatial autocorrelation of the random effects ($v$) from the non-spatial model. For robust validation, we use both the Analytical approach and the Monte Carlo permutation approach.
+
+```{r moran-test}
+# Convert the proximity matrix to a listw object
+W_listw <- spdep::mat2listw(weight_mat, style = "W")
+
+# Extract the mean of the random effects (v) using the exact column name 'Estimate'
+v_ns <- as.numeric(mod_ns$randeff$Estimate)
+
+# 1. Analytical Approach
+moran_analytical <- spatial_moran(x = v_ns, listw = W_listw)
+print(moran_analytical)
+
+# 2. Monte Carlo Permutation Approach
+set.seed(123) # For reproducibility
+moran_mc <- spdep::moran.mc(x = v_ns, listw = W_listw, nsim = 999)
+print(moran_mc)
+```
+
+A significant p-value in both tests confirms that the non-spatial model left unexplained spatial structure in the random effects, heavily justifying the use of a spatial model.
+
+## Step 4: Fitting the Spatial SAR Model
+
+Proceeding with the Spatial Simultaneous Autoregressive (SAR) model to capture the spatial dependency:
+
+```{r sar-model, results='hide'}
+mod_sar <- betaDeffSAR(
+  formula = y ~ x1 + x2,
+  DEFF = "deff",
+  n_i = "n_i",
+  proxmat = weight_mat,
+  data = dataBeta
+)
+```
+
+Extract the RSE (or CV) for the SAR estimates using the exact column names:
+
+```{r sar-rse}
+rse_sar <- (mod_sar$Est$Est.Error / mod_sar$Est$Estimate) * 100
+```
+
+## Step 5: Evaluation and Comparison
+
+We compare the performance of the Direct Estimator, the Non-Spatial Model, and the Spatial SAR Model. A lower RSE (CV) indicates a more reliable and precise estimate.
+
+```{r comparison, fig.width=7, fig.height=5}
+# Combine RSEs into a single data frame for plotting
+df_rse <- data.frame(
+  Area = seq_along(dataBeta$y),
+  Direct = dataBeta$rse_direct,
+  Non_Spatial = rse_ns,
+  Spatial_SAR = rse_sar
+)
+
+# Order by Direct RSE for better visualization
+df_rse <- df_rse[order(df_rse$Direct), ]
+df_rse$Area_Index <- seq_len(nrow(df_rse))
+
+# Plotting the RSE (CV) Comparison
+ggplot(df_rse, aes(x = Area_Index)) +
+  geom_line(aes(y = Direct, color = "Direct Estimation"), linewidth = 1, alpha = 0.6) +
+  geom_line(aes(y = Non_Spatial, color = "HB Non-Spatial"), linewidth = 1, alpha = 0.8) +
+  geom_line(aes(y = Spatial_SAR, color = "HB Spatial SAR"), linewidth = 1.2) +
+  scale_color_manual(
+    name = "Estimator",
+    values = c("Direct Estimation" = "#E69F00", 
+               "HB Non-Spatial" = "#56B4E9", 
+               "HB Spatial SAR" = "#009E73")
+  ) +
+  labs(
+    title = "Comparison of Relative Standard Error (RSE / CV)",
+    subtitle = "Lower RSE indicates higher precision",
+    x = "Area (Ordered by Direct RSE)",
+    y = "RSE (%)"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+The plot above clearly illustrates how model-based estimators, particularly the spatial ones, shrink the variance and improve the overall precision compared to the direct survey estimates.
