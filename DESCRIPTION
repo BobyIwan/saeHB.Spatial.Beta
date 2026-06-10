@@ -11,8 +11,7 @@ Description: Provides several functions and datasets for area-level Small Area E
     variables of interest that follow a Beta distribution. The package supports spatial 
     structures under the Simultaneous Autoregressive (SAR) and Leroux Conditional 
     Autoregressive (CAR) models, accommodating survey design effect (DEFF) adjustments. 
-    The 'rjags' package is employed to obtain parameter estimates via Gibbs Sampling. 
-    For the reference, see Rao and Molina (2015) <doi:10.1002/9781118735855>.
+    The 'rjags' package is employed to obtain parameter estimates via Gibbs Sampling.
 License: GPL-3
 Encoding: UTF-8
 LazyData: true

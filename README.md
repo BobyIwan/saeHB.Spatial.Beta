@@ -11,8 +11,7 @@ spatial structures under the Simultaneous Autoregressive (SAR) model and
 the Leroux Conditional Autoregressive (CAR) model. It also accommodates
 survey design effect (DEFF) adjustments to handle complex survey data.
 The `rjags` package is employed to obtain parameter estimates via Markov
-Chain Monte Carlo (MCMC).For the reference, see Rao and Molina (2015)
-<doi:10.1002/9781118735855>.
+Chain Monte Carlo (MCMC).
 
 ## Author
 
