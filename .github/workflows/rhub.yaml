@@ -89,6 +89,17 @@ jobs:
         with:
           token: ${{ secrets.RHUB_TOKEN }}
           job-config: ${{ matrix.config.job-config }}
+
+      # --- TAMBAHAN MANUAL UNTUK INSTALL JAGS ---
+      - name: Install JAGS on Windows
+        if: runner.os == 'Windows'
+        run: choco install jags -y
+
+      - name: Install JAGS on macOS
+        if: runner.os == 'macOS'
+        run: brew install jags
+      # ------------------------------------------
+
       - uses: r-hub/actions/setup-deps@v1
         with:
           job-config: ${{ matrix.config.job-config }}
