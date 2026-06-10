@@ -17,7 +17,7 @@
 #'   \item Area ID \code{domain}, response variable \code{y}, auxiliary variables \code{x1, x2}, sample size \code{n_i}, and design effect \code{deff} are combined into a data frame called \code{dataBeta}.
 #' }
 #'
-#' @format A data frame with 100 rows and 6 columns:
+#' @format A data frame with 36 rows and 6 columns:
 #' \describe{
 #'   \item{domain}{Area ID/name}
 #'   \item{y}{Direct estimates of the proportion/variable of interest (0 < y < 1)}

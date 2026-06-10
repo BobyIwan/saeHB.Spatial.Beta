@@ -10,7 +10,6 @@ test_that("Unit Testing for betaNonSpatial: Execution and Output Format", {
 
       iter.mcmc = 100,
       burn.in = 50,
-      n.adapt = 50
     )
     dev.off()
     expect_true(is.list(res_sampled))
@@ -22,7 +21,6 @@ test_that("Unit Testing for betaNonSpatial: Execution and Output Format", {
 
       iter.mcmc = 100,
       burn.in = 50,
-      n.adapt = 50,
 
       plot = FALSE
     )

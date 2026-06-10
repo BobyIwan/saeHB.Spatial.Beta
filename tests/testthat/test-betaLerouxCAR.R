@@ -11,7 +11,7 @@ test_that("Unit Testing for betaLerouxCAR: Execution and Output Format", {
 
       iter.mcmc = 100,
       burn.in = 50,
-      n.adapt = 50
+      n.adapt = 2500
     )
     dev.off()
     expect_true(is.list(res_sampled))
@@ -24,7 +24,7 @@ test_that("Unit Testing for betaLerouxCAR: Execution and Output Format", {
 
       iter.mcmc = 100,
       burn.in = 50,
-      n.adapt = 50,
+      n.adapt = 2500,
 
       plot = FALSE
     )

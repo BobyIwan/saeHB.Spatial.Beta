@@ -10,8 +10,7 @@ test_that("Unit Testing for betaSAR: Execution and Output Format", {
       data = dataBeta,
 
       iter.mcmc = 100,
-      burn.in = 50,
-      n.adapt = 50
+      burn.in = 50
     )
     dev.off()
     expect_true(is.list(res_sampled))
@@ -24,7 +23,6 @@ test_that("Unit Testing for betaSAR: Execution and Output Format", {
 
       iter.mcmc = 100,
       burn.in = 50,
-      n.adapt = 50,
 
       plot = FALSE
     )

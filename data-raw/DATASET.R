@@ -4,8 +4,8 @@ set.seed(20260601L)
 
 # Setup dimensions and main parameters
 
-n_row <- 10L
-n_col <- 10L
+n_row <- 6L
+n_col <- 6L
 m     <- n_row * n_col
 
 beta_true <- c(`(Intercept)` = 1, x1 = 1, x2 = 1)
@@ -104,7 +104,7 @@ dataBeta <- data.frame(
 
 dataBeta_NA <- dataBeta
 
-dataBeta_NA$y[c(17, 33, 58, 81, 95)] <- NA
+dataBeta_NA$y[c(7, 13, 18, 21, 32)] <- NA
 
 # Export datasets
 
