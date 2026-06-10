@@ -52,19 +52,18 @@ dataBeta$rse_direct <- (sqrt(var_direct) / dataBeta$y) * 100
 We begin by fitting a baseline non-spatial model that accommodates the survey design effect. Here, we use the default Markov Chain Monte Carlo (MCMC) iterations.
 
 ```{r ns-model, results='hide'}
-mod_ns <- betaDeffNonSpatial(
+mod_ns_deff <- betaDeffNonSpatial(
   formula = y ~ x1 + x2,
   DEFF = "deff",
   n_i = "n_i",
-  data = dataBeta,
-  n.adapt = 500
+  data = dataBeta
 )
 ```
 
 Extract the RSE (or CV) for the non-spatial estimates using the exact column names (Estimate and Est.Error):
 
 ```{r ns-rse}
-rse_ns <- (mod_ns$Est$Est.Error / mod_ns$Est$Estimate) * 100
+rse_ns_deff <- (mod_ns_deff$Est$Est.Error / mod_ns_deff$Est$Estimate) * 100
 ```
 
 ## Step 3: Spatial Autocorrelation Diagnostic (Moran's I)
@@ -76,15 +75,15 @@ To determine if a spatial model is necessary, we evaluate the spatial autocorrel
 W_listw <- spdep::mat2listw(weight_mat, style = "W")
 
 # Extract the mean of the random effects (v) using the exact column name 'Estimate'
-v_ns <- as.numeric(mod_ns$randeff$Estimate)
+v_ns_deff <- as.numeric(mod_ns_deff$randeff$Estimate)
 
 # 1. Analytical Approach
-moran_analytical <- spatial_moran(x = v_ns, listw = W_listw)
+moran_analytical <- spatial_moran(x = v_ns_deff, listw = W_listw)
 print(moran_analytical)
 
 # 2. Monte Carlo Permutation Approach
 set.seed(123) # For reproducibility
-moran_mc <- spdep::moran.mc(x = v_ns, listw = W_listw, nsim = 999)
+moran_mc <- spdep::moran.mc(x = v_ns_deff, listw = W_listw, nsim = 999)
 print(moran_mc)
 ```
 
@@ -95,19 +94,19 @@ A significant p-value in both tests confirms that the non-spatial model left une
 Proceeding with the Spatial Simultaneous Autoregressive (SAR) model to capture the spatial dependency:
 
 ```{r sar-model, results='hide'}
-mod_sar <- betaDeffSAR(
+mod_sar_deff <- betaDeffSAR(
   formula = y ~ x1 + x2,
   DEFF = "deff",
   n_i = "n_i",
   proxmat = weight_mat,
-  data = dataBeta,
+  data = dataBeta
 )
 ```
 
 Extract the RSE (or CV) for the SAR estimates using the exact column names:
 
 ```{r sar-rse}
-rse_sar <- (mod_sar$Est$Est.Error / mod_sar$Est$Estimate) * 100
+rse_sar_deff <- (mod_sar_deff$Est$Est.Error / mod_sar_deff$Est$Estimate) * 100
 ```
 
 ## Step 5: Evaluation and Comparison
@@ -119,8 +118,8 @@ We compare the performance of the Direct Estimator, the Non-Spatial Model, and t
 df_rse <- data.frame(
   Area = seq_along(dataBeta$y),
   Direct = dataBeta$rse_direct,
-  Non_Spatial = rse_ns,
-  Spatial_SAR = rse_sar
+  Non_Spatial = rse_ns_deff,
+  Spatial_SAR = rse_sar_deff
 )
 
 # Order by Direct RSE for better visualization
@@ -130,13 +129,13 @@ df_rse$Area_Index <- seq_len(nrow(df_rse))
 # Plotting the RSE (CV) Comparison
 ggplot(df_rse, aes(x = Area_Index)) +
   geom_line(aes(y = Direct, color = "Direct Estimation"), linewidth = 1, alpha = 0.6) +
-  geom_line(aes(y = Non_Spatial, color = "HB Non-Spatial"), linewidth = 1, alpha = 0.8) +
-  geom_line(aes(y = Spatial_SAR, color = "HB Spatial SAR"), linewidth = 1.2) +
+  geom_line(aes(y = Non_Spatial, color = "HB Beta Deff Non-Spatial"), linewidth = 1, alpha = 0.8) +
+  geom_line(aes(y = Spatial_SAR, color = "HB Beta Deff Spatial SAR"), linewidth = 1.2) +
   scale_color_manual(
     name = "Estimator",
     values = c("Direct Estimation" = "#E69F00", 
-               "HB Non-Spatial" = "#56B4E9", 
-               "HB Spatial SAR" = "#009E73")
+               "HB Beta Deff Non-Spatial" = "#56B4E9", 
+               "HB Beta Deff Spatial SAR" = "#009E73")
   ) +
   labs(
     title = "Comparison of Relative Standard Error (RSE / CV)",

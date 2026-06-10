@@ -20,7 +20,7 @@
 #' @param var.coef Optional vector containing the variances of the prior distribution of the regression model coefficients.
 #' @param tau.v Initial value or shape for the random effect precision. Default is \code{1}.
 #' @param seed An integer seed for the random number generator to ensure reproducibility. Default is \code{123}.
-#' @param quiet Logical; if \code{TRUE}, suppresses the JAGS terminal output. Default is \code{TRUE}.
+#' @param quiet Logical; if \code{TRUE}, suppresses the JAGS terminal output. Default is \code{FALSE}.
 #' @param plot Logical; if \code{TRUE}, generates MCMC diagnostic trace, autocorrelation, and density plots. Default is \code{TRUE}.
 #' @param keep.fit Logical; if \code{TRUE}, keeps the raw MCMC \code{coda} samples object in the output list. Default is \code{FALSE}.
 #'
@@ -61,7 +61,7 @@ betaNonSpatial <- function(formula, data,
                            iter.update = 3, iter.mcmc = 2000,
                            thin = 1, burn.in = 1000, chains = 2, n.adapt = 1000,
                            coef = NULL, var.coef = NULL, tau.v = 1,
-                           seed = 123, quiet = TRUE, plot = TRUE, keep.fit = FALSE) {
+                           seed = 123, quiet = FALSE, plot = TRUE, keep.fit = FALSE) {
 
   result <- list(Est = NA, refVar = NA, randeff = NA, coefficient = NA)
 
