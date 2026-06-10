@@ -59,7 +59,8 @@ model_sarDeff <- betaDeffSAR(
   DEFF = "deff",
   n_i = "n_i",
   proxmat = weight_mat,
-  data = dataBeta
+  data = dataBeta,
+  n.adapt = 500
 )
 ```
 
