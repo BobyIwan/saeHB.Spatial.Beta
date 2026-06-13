@@ -49,11 +49,17 @@ Boby Iwan <bobyiwanboby2122@gmail.com>
 ## Installation
 
 You can install the development version of saeHB.Spatial.Beta from
-[GitHub](https://github.com/) with:
+[GitHub](https://github.com/BobyIwan/saeHB.Spatial.Beta) with:
 
 ``` r
 # install.packages("devtools")
 devtools::install_github("BobyIwan/saeHB.Spatial.Beta")
+```
+
+Or, to include the vignette:
+
+``` r
+devtools::install_github("BobyIwan/saeHB.Spatial.Beta", build_vignettes = TRUE)
 ```
 
 ## Example
