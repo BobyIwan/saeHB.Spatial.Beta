@@ -2,7 +2,7 @@
 #' @title Synthetic Data with Missing Values for Small Area Estimation
 #'
 #' @description
-#' A synthetic dataset identical to \code{\link{dataBeta}}, but contains 5 missing values (NA) in the
+#' A synthetic dataset identical to \code{\link{databeta}}, but contains 5 missing values (NA) in the
 #' variable of interest (\code{y}) to demonstrate the prediction capability of the models for non-sampled areas.
 #'
 #' @format A data frame with 36 rows and 6 columns:
@@ -15,5 +15,5 @@
 #'   \item{deff}{Survey design effect for each area}
 #' }
 #'
-#' @usage data(dataBeta_NA)
-"dataBeta_NA"
+#' @usage data(databeta_na)
+"databeta_na"

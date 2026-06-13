@@ -25,14 +25,14 @@ Boby Iwan, Cucu Sumarni
 Boby Iwan <bobyiwanboby2122@gmail.com>
 
 ## Functions
-* `betaDeffSAR()` Estimates small area means using Spatial SAR Model with Beta distribution and Design Effect (DEFF) adjustments.
-* `betaSAR()` Estimates small area means using Spatial SAR Model with Beta distribution without DEFF adjustments.
-* `betaDeffLerouxCAR()` Estimates small area means using Spatial Leroux CAR Model with Beta distribution and Design Effect (DEFF) adjustments.
-* `betaLerouxCAR()` Estimates small area means using Spatial Leroux CAR Model with Beta distribution without DEFF adjustments.
-* `betaDeffNonSpatial()` Estimates small area means using a Non-Spatial Beta Model with Independent and Identically Distributed (IID) random effects and DEFF adjustments.
-* `betaNonSpatial()` Estimates small area means using a Non-Spatial Beta Model without DEFF adjustments.
-* `build_W()` A utility function to construct spatial weights matrices (contiguity, distance, or kernel) required for spatial modeling.
-* `spatial_moran()` A diagnostic function to perform Moran's I test for spatial autocorrelation.
+* `betadeff_sar()` Estimates small area means using a Spatial SAR Model under a Beta distribution, incorporating survey design effect (DEFF) adjustments.
+* `beta_sar()` Estimates small area means using a Spatial SAR Model under a Beta distribution without DEFF adjustments, by estimating the unknown precision parameter.
+* `betadeff_lerouxcar()` Estimates small area means using a Spatial Leroux CAR Model under a Beta distribution, incorporating survey design effect (DEFF) adjustments.
+* `beta_lerouxcar()` Estimates small area means using a Spatial Leroux CAR Model under a Beta distribution without DEFF adjustments, by estimating the unknown precision parameter.
+* `betadeff_nonspatial()` Estimates small area means using a Non-Spatial Model under a Beta distribution with Independent and Identically Distributed (IID) random effects, incorporating DEFF adjustments.
+* `beta_nonspatial()` Estimates small area means using a Non-Spatial Model under a Beta distribution with IID random effects without DEFF adjustments, by estimating the unknown precision parameter.
+* `build_w()` A utility function to construct spatial weights matrices (contiguity, distance, or kernel) required for spatial modeling.
+* `moran_test()` A diagnostic function to perform Moran's I test for spatial autocorrelation.
 
 ## Installation
 You can install the development version of saeHB.Spatial.Beta from [GitHub](https://github.com/) with:
@@ -44,47 +44,47 @@ devtools::install_github("BobyIwan/saeHB.Spatial.Beta")
 
 ## Example
 
-This is a basic example of using the `betaDeffSAR()` function to make an estimate based on synthetic data in this package:
+This is a basic example of using the `betadeff_sar()` function to make an estimate based on synthetic data in this package:
 
 ```{r example, results='hide', message=FALSE, warning=FALSE}
 library(saeHB.Spatial.Beta)
 
 # Load dataset and proximity matrix
-data(dataBeta)
+data(databeta)
 data(weight_mat)
 
 # Fitting the Spatial SAR model
-model_sarDeff <- betaDeffSAR(
+model_sar_deff <- betadeff_sar(
   formula = y ~ x1 + x2,
-  DEFF = "deff",
+  deff = "deff",
   n_i = "n_i",
   proxmat = weight_mat,
-  data = dataBeta
+  data = databeta
 )
 ```
 
 Extract the mean estimation for the areas:
 
 ```{r}
-head(model_sarDeff$Est)
+head(model_sar_deff$est)
 ```
 
 Extract the estimated model coefficients:
 
 ```{r}
-model_sarDeff$coefficient
+model_sar_deff$coefficient
 ```
 
 Extract the random effect for the areas:
 
 ```{r}
-model_sarDeff$randeff
+model_sar_deff$randeff
 ```
 
 Extract the random effect variance for the areas:
 
 ```{r}
-model_sarDeff$refVar
+model_sar_deff$refvar
 ```
 
 ## References
@@ -92,3 +92,4 @@ model_sarDeff$refVar
 * Kubacki, J., & Jedrzejczak, A. (2016). Small Area Estimation of Income Under Spatial SAR Model. Statistics in Transition New Series, Vol. 17, No. 3, pp. 365--390. <doi:10.59170/stattrans-2016-022>.
 * Leroux, B. G., Lei, X., & Breslow, N. (2000). Estimation of Disease Rates in Small Areas: A New Mixed Model for Spatial Dependence. In M. E. Halloran & D. Berry (Eds.), Statistical Models in Epidemiology, the Environment, and Clinical Trials (Vol. 116, pp. 179--191). New York: Springer. <doi:10.1007/978-1-4612-1284-3_4>.
 * Chung, H. C., & Datta, G. S. (2020). Bayesian Hierarchical Spatial Models for Small Area Estimation. Research Report Series. Washington, D.C.: U.S. Census Bureau.
+

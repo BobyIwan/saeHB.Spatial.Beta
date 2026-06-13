@@ -14,7 +14,7 @@
 #'   \item Generate spatial random effects under the SAR model. First, generate independent normal errors \eqn{u \sim N(0, 1)}. Then, calculate the spatial random effect \eqn{v = (I - \rho W)^{-1}u}, where \eqn{I} is an identity matrix, \eqn{W} is the row-standardized proximity matrix (\code{weight_mat}), and the spatial autoregressive parameter \eqn{\rho} is set to 0.70.
 #'   \item Calculate the true mean proportions \eqn{\mu = \text{logit}^{-1}(X\beta + v)}, where the regression coefficients are set as \eqn{\beta_0 = \beta_1 = \beta_2 = 1}.
 #'   \item Generate the response variable \eqn{y \sim \text{Beta}(\mu \phi, (1 - \mu) \phi)}. Values are strictly bounded between 0 and 1.
-#'   \item Area ID \code{domain}, response variable \code{y}, auxiliary variables \code{x1, x2}, sample size \code{n_i}, and design effect \code{deff} are combined into a data frame called \code{dataBeta}.
+#'   \item Area ID \code{domain}, response variable \code{y}, auxiliary variables \code{x1, x2}, sample size \code{n_i}, and design effect \code{deff} are combined into a data frame called \code{databeta}.
 #' }
 #'
 #' @format A data frame with 36 rows and 6 columns:
@@ -27,5 +27,5 @@
 #'   \item{deff}{Survey design effect for each area}
 #' }
 #'
-#' @usage data(dataBeta)
-"dataBeta"
+#' @usage data(databeta)
+"databeta"

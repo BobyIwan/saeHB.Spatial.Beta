@@ -12,14 +12,14 @@
 #'
 #' @section Functions:
 #' \describe{
-#'   \item{\code{\link{betaDeffSAR}}}{Estimates small area means using Spatial SAR Model with Beta distribution and Design Effect (DEFF) adjustments.}
-#'   \item{\code{\link{betaSAR}}}{Estimates small area means using Spatial SAR Model with Beta distribution without DEFF adjustments (estimates a global precision parameter).}
-#'   \item{\code{\link{betaDeffLerouxCAR}}}{Estimates small area means using Spatial Leroux CAR Model with Beta distribution and Design Effect (DEFF) adjustments.}
-#'   \item{\code{\link{betaLerouxCAR}}}{Estimates small area means using Spatial Leroux CAR Model with Beta distribution without DEFF adjustments.}
-#'   \item{\code{\link{betaDeffNonSpatial}}}{Estimates small area means using a Non-Spatial Beta Model with Independent and Identically Distributed (IID) random effects and DEFF adjustments.}
-#'   \item{\code{\link{betaNonSpatial}}}{Estimates small area means using a Non-Spatial Beta Model without DEFF adjustments.}
-#'   \item{\code{\link{build_W}}}{A utility function to construct spatial weights matrices (contiguity, distance, or kernel) required for spatial modeling.}
-#'   \item{\code{\link{spatial_moran}}}{A diagnostic function to perform Moran's I test for spatial autocorrelation.}
+#'   \item{\code{\link{betadeff_sar}}}{Estimates small area means using Spatial SAR Model with Beta distribution and Design Effect (DEFF) adjustments.}
+#'   \item{\code{\link{beta_sar}}}{Estimates small area means using Spatial SAR Model with Beta distribution without DEFF adjustments (estimates a global precision parameter).}
+#'   \item{\code{\link{betadeff_lerouxcar}}}{Estimates small area means using Spatial Leroux CAR Model with Beta distribution and Design Effect (DEFF) adjustments.}
+#'   \item{\code{\link{beta_lerouxcar}}}{Estimates small area means using Spatial Leroux CAR Model with Beta distribution without DEFF adjustments.}
+#'   \item{\code{\link{betadeff_nonspatial}}}{Estimates small area means using a Non-Spatial Beta Model with Independent and Identically Distributed (IID) random effects and DEFF adjustments.}
+#'   \item{\code{\link{beta_nonspatial}}}{Estimates small area means using a Non-Spatial Beta Model without DEFF adjustments.}
+#'   \item{\code{\link{build_w}}}{A utility function to construct spatial weights matrices (contiguity, distance, or kernel) required for spatial modeling.}
+#'   \item{\code{\link{moran_test}}}{A diagnostic function to perform Moran's I test for spatial autocorrelation.}
 #' }
 #'
 #' @section Reference:

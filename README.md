@@ -23,22 +23,27 @@ Boby Iwan <bobyiwanboby2122@gmail.com>
 
 ## Functions
 
-- `betaDeffSAR()` Estimates small area means using Spatial SAR Model
-  with Beta distribution and Design Effect (DEFF) adjustments.
-- `betaSAR()` Estimates small area means using Spatial SAR Model with
-  Beta distribution without DEFF adjustments.
-- `betaDeffLerouxCAR()` Estimates small area means using Spatial Leroux
-  CAR Model with Beta distribution and Design Effect (DEFF) adjustments.
-- `betaLerouxCAR()` Estimates small area means using Spatial Leroux CAR
-  Model with Beta distribution without DEFF adjustments.
-- `betaDeffNonSpatial()` Estimates small area means using a Non-Spatial
-  Beta Model with Independent and Identically Distributed (IID) random
-  effects and DEFF adjustments.
-- `betaNonSpatial()` Estimates small area means using a Non-Spatial Beta
-  Model without DEFF adjustments.
-- `build_W()` A utility function to construct spatial weights matrices
+- `betadeff_sar()` Estimates small area means using a Spatial SAR Model
+  under a Beta distribution, incorporating survey design effect (DEFF)
+  adjustments.
+- `beta_sar()` Estimates small area means using a Spatial SAR Model
+  under a Beta distribution without DEFF adjustments, by estimating the
+  unknown precision parameter.
+- `betadeff_lerouxcar()` Estimates small area means using a Spatial
+  Leroux CAR Model under a Beta distribution, incorporating survey
+  design effect (DEFF) adjustments.
+- `beta_lerouxcar()` Estimates small area means using a Spatial Leroux
+  CAR Model under a Beta distribution without DEFF adjustments, by
+  estimating the unknown precision parameter.
+- `betadeff_nonspatial()` Estimates small area means using a Non-Spatial
+  Model under a Beta distribution with Independent and Identically
+  Distributed (IID) random effects, incorporating DEFF adjustments.
+- `beta_nonspatial()` Estimates small area means using a Non-Spatial
+  Model under a Beta distribution with IID random effects without DEFF
+  adjustments, by estimating the unknown precision parameter.
+- `build_w()` A utility function to construct spatial weights matrices
   (contiguity, distance, or kernel) required for spatial modeling.
-- `spatial_moran()` A diagnostic function to perform Moran’s I test for
+- `moran_test()` A diagnostic function to perform Moran’s I test for
   spatial autocorrelation.
 
 ## Installation
@@ -53,23 +58,23 @@ devtools::install_github("BobyIwan/saeHB.Spatial.Beta")
 
 ## Example
 
-This is a basic example of using the `betaDeffSAR()` function to make an
-estimate based on synthetic data in this package:
+This is a basic example of using the `betadeff_sar()` function to make
+an estimate based on synthetic data in this package:
 
 ``` r
 library(saeHB.Spatial.Beta)
 
 # Load dataset and proximity matrix
-data(dataBeta)
+data(databeta)
 data(weight_mat)
 
 # Fitting the Spatial SAR model
-model_sarDeff <- betaDeffSAR(
+model_sar_deff <- betadeff_sar(
   formula = y ~ x1 + x2,
-  DEFF = "deff",
+  deff = "deff",
   n_i = "n_i",
   proxmat = weight_mat,
-  data = dataBeta
+  data = databeta
 )
 ```
 
@@ -78,7 +83,7 @@ model_sarDeff <- betaDeffSAR(
 Extract the mean estimation for the areas:
 
 ``` r
-head(model_sarDeff$Est)
+head(model_sar_deff$est)
 #>        Estimate  Est.Error   l-95% CI  u-95% CI
 #> mu[1] 0.8733168 0.04930364 0.76952538 0.9521954
 #> mu[2] 0.6701813 0.08491170 0.51026583 0.8503483
@@ -91,7 +96,7 @@ head(model_sarDeff$Est)
 Extract the estimated model coefficients:
 
 ``` r
-model_sarDeff$coefficient
+model_sar_deff$coefficient
 #>          Estimate  Est.Error  l-95% CI  u-95% CI     Rhat       ESS
 #> beta[0] 1.7055337 0.11951894 1.4620974 1.9419599 1.149548  66.70198
 #> beta[1] 0.6605003 0.10885851 0.4504252 0.8648356 1.286895 176.22281
@@ -102,7 +107,7 @@ model_sarDeff$coefficient
 Extract the random effect for the areas:
 
 ``` r
-model_sarDeff$randeff
+model_sar_deff$randeff
 #>          Estimate Est.Error    l-95% CI   u-95% CI
 #> v[1]   0.02976288 0.4913420 -0.81082629  1.0627591
 #> v[2]  -0.48294515 0.4130690 -1.26231341  0.4176781
@@ -145,7 +150,7 @@ model_sarDeff$randeff
 Extract the random effect variance for the areas:
 
 ``` r
-model_sarDeff$refVar
+model_sar_deff$refvar
 #>           Estimate Est.Error  l-95% CI u-95% CI
 #> a.var[1]  2.338106  4.781148 0.8432360 7.458702
 #> a.var[2]  2.263956  4.788653 0.8277110 7.304105

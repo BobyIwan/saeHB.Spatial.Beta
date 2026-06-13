@@ -1,11 +1,15 @@
 #' @title Build Spatial Weights Matrix
 #'
-#' @description
+#' @description This function constructs spatial weights matrices (\eqn{W}) for spatial modeling. It supports various methods including Contiguity, Distance-based, and Kernel-based weights, and provides a robust fallback mechanism to automatically connect isolated areas (islands).
+#'
+#' @details
+#' The function supports the following spatial weight construction methods:
 #' \itemize{
-#'   \item {This function constructs spatial weights matrices (\eqn{W}) for spatial modeling.}
-#'   \item {It supports various methods including Contiguity (Queen, Rook, Bishop), Distance-based (K-Nearest Neighbors, Inverse Distance, Exponential), and Kernel-based weights.}
-#'   \item {It also provides a robust fallback mechanism to automatically connect isolated areas (islands) when using contiguity methods.}
+#'   \item \strong{Contiguity:} Queen, Rook, and Bishop.
+#'   \item \strong{Distance-based:} K-Nearest Neighbors (KNN), Inverse Distance, and Exponential.
+#'   \item \strong{Kernel-based:} Uniform, Gaussian, Triangular, Epanechnikov, and Quartic.
 #' }
+#' For distance and kernel methods, if \code{lonlat = TRUE}, spherical (great-circle) distances are calculated. For the kernel method specifically, distances are internally converted to kilometers.
 #'
 #' @param data An \code{sf} object (polygons/points) or a standard data frame. If a standard data frame is provided, \code{coords} must be specified.
 #' @param coords An \eqn{N \times 2} matrix of coordinates. Required if \code{data} is not an \code{sf} object.
@@ -13,13 +17,13 @@
 #' @param contiguity A string indicating the contiguity type. Options are \code{"queen"}, \code{"rook"}, or \code{"bishop"}.
 #' @param distance A string indicating the distance-based type. Options are \code{"knn"}, \code{"inverse_distance"}, or \code{"exponential"}.
 #' @param k An integer specifying the number of nearest neighbors for KNN methods. Default is \code{2}.
-#' @param dmax A numeric specifying the maximum distance threshold for distance-based neighbors.
+#' @param dmax A numeric specifying the maximum distance threshold for distance-based neighbors. The unit depends on \code{lonlat} (kilometers if \code{TRUE}, native coordinate units/meters if \code{FALSE}).
 #' @param power A numeric specifying the decay power for inverse distance weights. Default is \code{1}.
 #' @param alpha A numeric specifying the decay parameter for exponential distance weights. Default is \code{1}.
 #' @param epsilon A small numeric value to prevent division by zero in inverse distance calculation. Default is \code{1e-12}.
 #' @param kernel A string indicating the type of spatial kernel. Options are \code{"uniform"}, \code{"gaussian"}, \code{"triangular"}, \code{"epanechnikov"}, or \code{"quartic"}.
-#' @param bandwidth A numeric specifying the bandwidth (\eqn{h}) for kernel weights. Required if \code{method = "kernel"}.
-#' @param lonlat Logical; if \code{TRUE}, coordinates are treated as Longitude/Latitude and great-circle spherical distances are calculated. Default is \code{TRUE}.
+#' @param bandwidth A numeric specifying the bandwidth (\eqn{h}) for kernel weights. Required if \code{method = "kernel"}. The unit depends on \code{lonlat} (kilometers if \code{TRUE}, native coordinate units/meters if \code{FALSE}).
+#' @param lonlat Logical; if \code{TRUE}, coordinates are treated as Longitude/Latitude, spherical distances are calculated, and limits are in \strong{kilometers (km)}. If \code{FALSE}, coordinates are assumed to be planar (e.g., UTM), Euclidean distances are calculated, and limits are in the native unit of the coordinates (usually \strong{meters}). Default is \code{TRUE}.
 #' @param style A character string specifying the spatial weights coding scheme (\code{"W"} for row-standardized or \code{"B"} for binary). Default is \code{"W"}.
 #' @param zero.policy Logical; if \code{TRUE}, areas with no neighbors are allowed to have zero-weight rows. Default is \code{TRUE}.
 #' @param fallback A string indicating the fallback method for isolated areas (without neighbors) when using contiguity. Options are \code{"knn"}, \code{"distance"}, or \code{"none"}. Default is \code{"knn"}.
@@ -37,14 +41,13 @@
 #'
 #' @examples
 #' # Generate random Longitude and Latitude coordinates for 10 areas
-#' # (e.g., somewhere roughly in Indonesia)
 #' set.seed(123)
-#' lon <- runif(10, min = 100, max = 140) # Longitude
-#' lat <- runif(10, min = -10, max = 10)  # Latitude
+#' lon <- runif(10, min = 100, max = 140)
+#' lat <- runif(10, min = -10, max = 10)
 #' coords <- cbind(lon, lat)
 #'
-#' # Build KNN distance-based weights (k = 2) using spherical distance
-#' W_knn <- build_W(
+#' # 1. Build KNN distance-based weights (k = 2) using spherical distance
+#' W_knn <- build_w(
 #'   data = NULL,
 #'   coords = coords,
 #'   method = "distance",
@@ -54,8 +57,11 @@
 #'   output = "matrix"
 #' )
 #'
-#' # Build Gaussian Kernel weights using 500 km bandwidth
-#' W_kernel <- build_W(
+#' # View the first few rows of the matrix
+#' head(W_knn)
+#'
+#' # 2. Build Gaussian Kernel weights using 500 km bandwidth
+#' W_kernel <- build_w(
 #'   data = NULL,
 #'   coords = coords,
 #'   method = "kernel",
@@ -65,12 +71,15 @@
 #'   output = "matrix"
 #' )
 #'
+#' # View the first few rows of the matrix
+#' head(W_kernel)
+#'
 #' @import sf
 #' @import spdep
 #' @importFrom stats na.omit
 #'
-#' @export build_W
-build_W <- function(
+#' @export build_w
+build_w <- function(
     data,
     coords = NULL,
     method = c("contiguity", "distance", "kernel"),
@@ -263,7 +272,7 @@ build_W <- function(
     }
     else if (kernel == "gaussian") {
       W <- (1 / sqrt(2 * pi)) * exp(-(Z^2) / 2)
-      diag(W) <- 0 # Tidak ada self-neighbor
+      diag(W) <- 0 # No self-neighbors allowed
     }
 
     if (any(rowSums(W) == 0) && !zero.policy) {

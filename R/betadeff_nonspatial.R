@@ -1,14 +1,9 @@
 #' @title Small Area Estimation using Hierarchical Bayesian Method under Non-Spatial Beta Model with Design Effect
 #'
-#' @description
-#' \itemize{
-#'   \item {This function is implemented to variable of interest \eqn{y} that is assumed to follow a Beta distribution. The range of data is \eqn{0 < y < 1}.}
-#'   \item {The random effects are assumed to be independent and identically distributed (IID) normal variables.}
-#'   \item {This function gives estimation of small area means under Non-Spatial Model using Hierarchical Bayesian Method with Design Effect (DEFF) adjustment.}
-#' }
+#' @description This function gives small area estimator under Non-Spatial Model with Design Effect (DEFF) adjustment. It is implemented to a variable of interest (y) that is assumed to follow a Beta Distribution. The range of data is \eqn{0 < y < 1}.
 #'
 #' @param formula Formula that describes the fitted model.
-#' @param DEFF String specifying the name of the design effect variable in the data frame.
+#' @param deff String specifying the name of the design effect variable in the data frame.
 #' @param n_i String specifying the name of the sample size variable in the data frame.
 #' @param data The data frame.
 #' @param iter.update Number of updates performed during Gibbs sampling. Default is \code{3}.
@@ -27,29 +22,33 @@
 #'
 #' @return This function returns a list with the following objects:
 #' \describe{
-#'   \item{Est}{A dataframe containing the posterior mean estimates, posterior standard deviations, and 95\% credible intervals of the small area means estimated using the Hierarchical Bayesian method.}
-#'   \item{refVar}{A dataframe containing the posterior mean estimates, posterior standard deviations, and 95\% credible intervals of the global random effect variance \eqn{(\sigma_{v}^{2})}.}
+#'   \item{est}{A dataframe containing the posterior mean estimates, posterior standard deviations, and 95\% credible intervals of the small area means estimated using the Hierarchical Bayesian method.}
 #'   \item{randeff}{A dataframe containing the posterior mean estimates, posterior standard deviations, and 95\% credible intervals of the area-specific random effects \eqn{(v)}.}
+#'   \item{refvar}{A dataframe containing the posterior mean estimates, posterior standard deviations, and 95\% credible intervals of the global random effect variance \eqn{(\sigma_{v}^{2})}.}
 #'   \item{coefficient}{A dataframe containing the posterior mean estimates, posterior standard deviations, 95\% credible intervals, Rhat convergence diagnostics, and effective sample sizes (ESS) for the regression coefficients \eqn{(\beta)}.}
 #' }
 #'
 #' @examples
 #' # Load dataset
-#' data(dataBeta)
+#' data(databeta)
 #'
 #' \donttest{
 #' # Fit the Non-Spatial Beta model with Design Effect
-#' result <- betaDeffNonSpatial(
+#' result <- betadeff_nonspatial(
 #'   formula = y ~ x1 + x2,
-#'   DEFF = "deff",
+#'   deff = "deff",
 #'   n_i = "n_i",
-#'   data = dataBeta
+#'   data = databeta
 #' )
 #'
 #' # View the estimation results
-#' result$Est
-#' result$refVar
+#' # 1. Small Area Estimates
+#' result$est
+#' # 2. Estimated area-specific random effects
 #' result$randeff
+#' # 3. Estimated global variance of the random effects
+#' result$refvar
+#' # 4. Estimated regression coefficients
 #' result$coefficient
 #' }
 #'
@@ -59,14 +58,14 @@
 #' @import grDevices
 #' @import graphics
 #'
-#' @export betaDeffNonSpatial
-betaDeffNonSpatial <- function(formula, DEFF, n_i, data,
+#' @export betadeff_nonspatial
+betadeff_nonspatial <- function(formula, deff, n_i, data,
                                iter.update = 3, iter.mcmc = 2000,
                                thin = 1, burn.in = 1000, chains = 2, n.adapt = 1000,
                                coef = NULL, var.coef = NULL, tau.v = 1,
                                seed = 123, quiet = FALSE, plot = TRUE, keep.fit = FALSE) {
 
-  result <- list(Est = NA, refVar = NA, randeff = NA, coefficient = NA)
+  result <- list(est = NA, randeff = NA, refvar = NA, coefficient = NA)
 
   formuladata <- stats::model.frame(formula, data, na.action = NULL)
   y <- formuladata[, 1, drop = FALSE]
@@ -81,13 +80,13 @@ betaDeffNonSpatial <- function(formula, DEFF, n_i, data,
     stop("Response variable must satisfy 0 < y < 1.")
   }
 
-  DEFF <- data[, DEFF]
+  deff <- data[, deff]
   n_i  <- data[, n_i]
 
-  if (length(DEFF) != N) stop("Length of DEFF must equal number of areas.")
+  if (length(deff) != N) stop("Length of deff must equal number of areas.")
   if (length(n_i) != N) stop("Length of n_i must equal number of areas.")
-  if (any(n_i[!is.na(y_all)] <= DEFF[!is.na(y_all)])) {
-    stop("There is at least one sampled area where n_i <= DEFF. Effective sample size must be > 1.")
+  if (any(n_i[!is.na(y_all)] <= deff[!is.na(y_all)])) {
+    stop("There is at least one sampled area where n_i <= deff. Effective sample size must be > 1.")
   }
   if (iter.update < 3) stop("The number of iteration updates must be at least 3.")
 
@@ -113,7 +112,7 @@ betaDeffNonSpatial <- function(formula, DEFF, n_i, data,
       y[i] ~ dbeta(shape1[i], shape2[i])
       shape1[i] <- mu[i] * phi[i]
       shape2[i] <- (1 - mu[i]) * phi[i]
-      phi[i] <- (n_i[i] / DEFF[i]) - 1
+      phi[i] <- (n_i[i] / deff[i]) - 1
 
       logit(mu[i]) <- beta[1] + inprod(beta[2:(P+1)], X[i, ]) + v[i]
       v[i] ~ dnorm(0, tau_v)
@@ -132,7 +131,7 @@ betaDeffNonSpatial <- function(formula, DEFF, n_i, data,
       y_samp[i] ~ dbeta(shape1[i], shape2[i])
       shape1[i] <- mu[idx_samp[i]] * phi[i]
       shape2[i] <- (1 - mu[idx_samp[i]]) * phi[i]
-      phi[i] <- (n_i[idx_samp[i]] / DEFF[idx_samp[i]]) - 1
+      phi[i] <- (n_i[idx_samp[i]] / deff[idx_samp[i]]) - 1
     }
 
     for (j in 1:N) {
@@ -151,7 +150,7 @@ betaDeffNonSpatial <- function(formula, DEFF, n_i, data,
 
   if (!any(is.na(y_all))) {
     for (i in 1:iter.update) {
-      dat <- list(N = N, P = P, y = y_all, X = X, DEFF = DEFF, n_i = n_i,
+      dat <- list(N = N, P = P, y = y_all, X = X, deff = deff, n_i = n_i,
                   mu_beta = mu_beta, tau_beta = tau_beta, tau.va = tau.va, tau.vb = tau.vb)
 
       jags.m <- rjags::jags.model(file = textConnection(model_sampled), data = dat,
@@ -178,7 +177,7 @@ betaDeffNonSpatial <- function(formula, DEFF, n_i, data,
 
     for (i in 1:iter.update) {
       dat <- list(N = N, P = P, N_samp = N_samp, y_samp = y_samp, idx_samp = idx_samp,
-                  X = X, DEFF = DEFF, n_i = n_i,
+                  X = X, deff = deff, n_i = n_i,
                   mu_beta = mu_beta, tau_beta = tau_beta, tau.va = tau.va, tau.vb = tau.vb)
 
       jags.m <- rjags::jags.model(file = textConnection(model_nonsampled), data = dat,
@@ -210,17 +209,17 @@ betaDeffNonSpatial <- function(formula, DEFF, n_i, data,
   }
 
   mu_idx <- grep("^mu\\[", rownames(res_sum$statistics))
-  Estimation <- data.frame(res_sum$statistics[mu_idx, 1:2], res_sum$quantiles[mu_idx, c(1,5)])
-  colnames(Estimation) <- c("Estimate", "Est.Error", "l-95% CI", "u-95% CI")
+  estimation <- data.frame(res_sum$statistics[mu_idx, 1:2], res_sum$quantiles[mu_idx, c(1,5)])
+  colnames(estimation) <- c("Estimate", "Est.Error", "l-95% CI", "u-95% CI")
 
   v_idx <- grep("^v\\[", rownames(res_sum$statistics))
   randeff <- data.frame(res_sum$statistics[v_idx, 1:2], res_sum$quantiles[v_idx, c(1,5)])
   colnames(randeff) <- c("Estimate", "Est.Error", "l-95% CI", "u-95% CI")
 
   sig_idx <- grep("^sigma2_v", rownames(res_sum$statistics))
-  refVar <- data.frame(rbind(res_sum$statistics[sig_idx, 1:2]), rbind(res_sum$quantiles[sig_idx, c(1,5)]))
-  rownames(refVar) <- "sigma2_v"
-  colnames(refVar) <- c("Estimate", "Est.Error", "l-95% CI", "u-95% CI")
+  refvar <- data.frame(rbind(res_sum$statistics[sig_idx, 1:2]), rbind(res_sum$quantiles[sig_idx, c(1,5)]))
+  rownames(refvar) <- "sigma2_v"
+  colnames(refvar) <- c("Estimate", "Est.Error", "l-95% CI", "u-95% CI")
 
   b_idx <- grep("^beta\\[", rownames(res_sum$statistics))
 
@@ -237,9 +236,9 @@ betaDeffNonSpatial <- function(formula, DEFF, n_i, data,
   rownames(coefficient) <- b_varnames
   colnames(coefficient) <- c("Estimate", "Est.Error", "l-95% CI", "u-95% CI", "Rhat", "ESS")
 
-  result$Est         <- Estimation
-  result$refVar      <- refVar
+  result$est         <- estimation
   result$randeff     <- randeff
+  result$refvar      <- refvar
   result$coefficient <- coefficient
 
   if (keep.fit) result$fit <- samps1

@@ -1,14 +1,24 @@
 #' @title Moran's I Test for Spatial Autocorrelation
 #'
-#' @description
-#' \itemize{
-#'   \item {This function provides a convenient wrapper to perform Moran's I test for spatial autocorrelation on a numeric vector.}
-#'   \item {It seamlessly handles missing values (NA) by subsetting both the numeric vector and the spatial weights list simultaneously.}
-#'   \item {It supports both analytical (randomization) and Monte Carlo permutation approaches.}
-#' }
+#' @description This function provides a convenient wrapper to perform Moran's I test for spatial autocorrelation on a numeric vector. It seamlessly handles missing values (NA) by subsetting both the numeric vector and the spatial weights list simultaneously.
+#'
+#' @details
+#' This function supports two approaches to testing the significance of Moran's I:
+#'
+#' \strong{1. Analytical Approach (Randomization - Default)}
+#' \cr
+#' When \code{mc = FALSE}, the function uses the analytical approach (specifically, the assumption of randomization). It computes the theoretical expectation and variance of Moran's I under the null hypothesis of no spatial autocorrelation. This method assumes that the observed values could have occurred in any spatial location with equal probability.
+#' \cr
+#' \emph{When to use:} Use this approach when your dataset is relatively large and follows standard statistical assumptions. It is computationally fast and provides reliable asymptotic p-values for large \eqn{N}.
+#'
+#' \strong{2. Monte Carlo Permutation Approach (\code{mc = TRUE})}
+#' \cr
+#' When \code{mc = TRUE}, the function calculates the p-value empirically. It randomly permutes (shuffles) the observed values \code{x} across the spatial units \code{nsim} times. For each permutation, it calculates a pseudo-Moran's I. The final p-value is the proportion of simulated Moran's I values that are as extreme as or more extreme than the observed Moran's I.
+#' \cr
+#' \emph{When to use:} Use this approach when your dataset has a relatively small number of areas or when you want to avoid relying on asymptotic theory. Because it computes the p-value empirically without assuming a specific theoretical distribution for the Moran's I statistic, the Monte Carlo approach is highly robust and is widely recommended for evaluating MCMC outputs.
 #'
 #' @param x A numeric vector of the variable of interest (e.g., residuals, random effects, or raw data).
-#' @param listw A \code{listw} object containing spatial weights created by \code{build_W} or \code{spdep}.
+#' @param listw A \code{listw} object containing spatial weights created by \code{build_w} or \code{spdep}.
 #' @param alternative A character string specifying the alternative hypothesis. Must be one of \code{"greater"} (default), \code{"less"}, or \code{"two.sided"}.
 #' @param mc Logical; if \code{TRUE}, performs Moran's I test using Monte Carlo permutations. Default is \code{FALSE} (analytical approach).
 #' @param nsim An integer specifying the number of permutations if \code{mc = TRUE}. Default is \code{999}.
@@ -26,33 +36,33 @@
 #'
 #' @examples
 #' # Load datasets
-#' data(dataBeta)
+#' data(databeta)
 #' data(weight_mat)
 #'
 #' # Convert the spatial weights matrix to a 'listw' object
 #' W_listw <- spdep::mat2listw(weight_mat, style = "W", zero.policy = TRUE)
 #'
 #' # Perform Moran's I test (Analytical approach)
-#' spatial_moran(x = dataBeta$y, listw = W_listw)
+#' moran_test(x = databeta$y, listw = W_listw)
 #'
 #' # Perform Moran's I test (Monte Carlo permutation approach)
-#' spatial_moran(x = dataBeta$y, listw = W_listw, mc = TRUE, nsim = 99)
+#' moran_test(x = databeta$y, listw = W_listw, mc = TRUE, nsim = 99)
 #'
 #' # Handling Missing Values automatically (na.rm = TRUE is default)
-#' y_with_na <- dataBeta$y
+#' y_with_na <- databeta$y
 #' y_with_na[c(2, 5)] <- NA
-#' spatial_moran(x = y_with_na, listw = W_listw, na.rm = TRUE)
+#' moran_test(x = y_with_na, listw = W_listw, na.rm = TRUE)
 #'
 #' @import spdep
 #'
-#' @export spatial_moran
-spatial_moran <- function(x,
-                          listw,
-                          alternative = c("greater", "less", "two.sided"),
-                          mc = FALSE,
-                          nsim = 999,
-                          zero.policy = TRUE,
-                          na.rm = TRUE) {
+#' @export moran_test
+moran_test <- function(x,
+                       listw,
+                       alternative = c("greater", "less", "two.sided"),
+                       mc = FALSE,
+                       nsim = 999,
+                       zero.policy = TRUE,
+                       na.rm = TRUE) {
 
   alternative <- match.arg(alternative)
 

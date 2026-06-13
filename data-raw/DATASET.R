@@ -16,7 +16,6 @@ domain_names <- sprintf("area_%03d", seq_len(m))
 eps <- 1e-6
 
 # Generate spatial matrices
-
 nb_queen <- spdep::cell2nb(
   n_row,
   n_col,
@@ -24,7 +23,6 @@ nb_queen <- spdep::cell2nb(
 )
 
 # Row-standardized spatial weight matrix (SAR and Moran's I)
-
 weight_mat <- spdep::nb2mat(
   nb_queen,
   style = "W",
@@ -32,7 +30,6 @@ weight_mat <- spdep::nb2mat(
 )
 
 # Binary adjacency matrix (CAR Leroux)
-
 adjacency_mat <- spdep::nb2mat(
   nb_queen,
   style = "B",
@@ -43,21 +40,18 @@ rownames(weight_mat) <- colnames(weight_mat) <- domain_names
 rownames(adjacency_mat) <- colnames(adjacency_mat) <- domain_names
 
 # Generate auxiliary variables
-
 x1 <- stats::rnorm(m)
 x2 <- stats::rnorm(m)
 
 X <- cbind(1, x1, x2)
 
 # Generate design-effect information
-
 n_i <- round(stats::runif(m, 10, 50))
 deff <- round(stats::runif(m, 1, 2.5), 2)
 
 phi_deff <- (n_i / deff) - 1
 
 # Generate SAR spatial random effects
-
 u <- stats::rnorm(
   m,
   mean = 0,
@@ -69,13 +63,11 @@ v <- as.numeric(
 )
 
 # Generate mean parameter
-
 mu <- stats::plogis(
   as.numeric(X %*% beta_true + v)
 )
 
 # Generate beta response
-
 y <- pmin(
   pmax(
     stats::rbeta(
@@ -89,8 +81,7 @@ y <- pmin(
 )
 
 # Complete dataset
-
-dataBeta <- data.frame(
+databeta <- data.frame(
   domain = domain_names,
   y = y,
   x1 = x1,
@@ -101,16 +92,14 @@ dataBeta <- data.frame(
 )
 
 # Dataset with missing responses
+databeta_na <- databeta
 
-dataBeta_NA <- dataBeta
-
-dataBeta_NA$y[c(7, 13, 18, 21, 32)] <- NA
+databeta_na$y[c(7, 13, 18, 21, 32)] <- NA
 
 # Export datasets
-
 usethis::use_data(
-  dataBeta,
-  dataBeta_NA,
+  databeta,
+  databeta_na,
   weight_mat,
   adjacency_mat,
   overwrite = TRUE,

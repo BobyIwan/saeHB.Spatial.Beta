@@ -1,14 +1,9 @@
-#' @title Small Area Estimation using Hierarchical Bayesian Method under Non-Spatial Beta Model
+#' @title Small Area Estimation using Hierarchical Bayesian Method under Spatial Beta-Leroux CAR Model
 #'
-#' @description
-#' \itemize{
-#'   \item {This function is implemented to variable of interest \eqn{y} that is assumed to follow a Beta distribution. The range of data is \eqn{0 < y < 1}.}
-#'   \item {This function gives estimation of small area means under Non-Spatial Model using Hierarchical Bayesian Method.}
-#'   \item {The random effects are assumed to be independent and identically distributed (IID) normal variables.}
-#'   \item {Unlike the Beta-DEFF model, this function does not use design effect adjustments. Instead, it estimates a global precision parameter \eqn{(\phi)} from the data.}
-#' }
+#' @description This function gives small area estimator under Spatial Leroux CAR Model. It is implemented to a variable of interest (y) that is assumed to follow a Beta Distribution. The range of data is \eqn{0 < y < 1}.
 #'
 #' @param formula Formula that describes the fitted model.
+#' @param proxmat \eqn{N \times N} spatial binary adjacency matrix with values \code{0} or \code{1} representing the neighborhood structure between areas. The diagonal elements must be \code{0}.
 #' @param data The data frame.
 #' @param iter.update Number of updates performed during Gibbs sampling. Default is \code{3}.
 #' @param iter.mcmc Total number of MCMC iterations per chain. Default is \code{2000}.
@@ -26,27 +21,33 @@
 #'
 #' @return This function returns a list with the following objects:
 #' \describe{
-#'   \item{Est}{A dataframe containing the posterior mean estimates, posterior standard deviations, and 95\% credible intervals of the small area means estimated using the Hierarchical Bayesian method.}
-#'   \item{refVar}{A dataframe containing the posterior mean estimates, posterior standard deviations, and 95\% credible intervals of the global random effect variance \eqn{(\sigma_{v}^{2})}.}
+#'   \item{est}{A dataframe containing the posterior mean estimates, posterior standard deviations, and 95\% credible intervals of the small area means estimated using the Hierarchical Bayesian method.}
 #'   \item{randeff}{A dataframe containing the posterior mean estimates, posterior standard deviations, and 95\% credible intervals of the area-specific random effects \eqn{(v)}.}
-#'   \item{coefficient}{A dataframe containing the posterior mean estimates, posterior standard deviations, 95\% credible intervals, Rhat convergence diagnostics, and effective sample sizes (ESS) for the regression coefficients \eqn{(\beta)} and and the global precision parameter \eqn{(\phi)}.}
+#'   \item{refvar}{A dataframe containing the posterior mean estimates, posterior standard deviations, and 95\% credible intervals of the area-specific random effect variances \eqn{(a.var)}.}
+#'   \item{coefficient}{A dataframe containing the posterior mean estimates, posterior standard deviations, 95\% credible intervals, Rhat convergence diagnostics, and Effective Sample Sizes (ESS) for the regression coefficients \eqn{(\beta)}, the spatial autoregressive parameter \eqn{(\rho)}, and the global precision parameter \eqn{(\phi)}.}
 #' }
 #'
 #' @examples
-#' # Load dataset
-#' data(dataBeta)
+#' # Load dataset and proximity matrix
+#' data(databeta)
+#' data(adjacency_mat)
 #'
 #' \donttest{
-#' # Fit the Non-Spatial Beta model
-#' result <- betaNonSpatial(
+#' # Fit the Spatial Beta-Leroux CAR model
+#' result <- beta_lerouxcar(
 #'   formula = y ~ x1 + x2,
-#'   data = dataBeta
+#'   proxmat = adjacency_mat,
+#'   data = databeta
 #' )
 #'
 #' # View the estimation results
-#' result$Est
-#' result$refVar
+#' # 1. Small Area Estimates
+#' result$est
+#' # 2. Estimated area-specific random effects
 #' result$randeff
+#' # 3. Estimated variance of the random effects
+#' result$refvar
+#' # 4. Estimated regression coefficients, spatial, and precision parameters
 #' result$coefficient
 #' }
 #'
@@ -56,14 +57,14 @@
 #' @import grDevices
 #' @import graphics
 #'
-#' @export betaNonSpatial
-betaNonSpatial <- function(formula, data,
-                           iter.update = 3, iter.mcmc = 2000,
-                           thin = 1, burn.in = 1000, chains = 2, n.adapt = 1000,
-                           coef = NULL, var.coef = NULL, tau.v = 1,
-                           seed = 123, quiet = FALSE, plot = TRUE, keep.fit = FALSE) {
+#' @export beta_lerouxcar
+beta_lerouxcar <- function(formula, proxmat, data,
+                          iter.update = 3, iter.mcmc = 2000,
+                          thin = 1, burn.in = 1000, chains = 2, n.adapt = 1000,
+                          coef = NULL, var.coef = NULL, tau.v = 1,
+                          seed = 123, quiet = FALSE, plot = TRUE, keep.fit = FALSE) {
 
-  result <- list(Est = NA, refVar = NA, randeff = NA, coefficient = NA)
+  result <- list(est = NA, randeff = NA, refvar = NA, coefficient = NA)
 
   formuladata <- stats::model.frame(formula, data, na.action = NULL)
   y <- formuladata[, 1, drop = FALSE]
@@ -85,18 +86,27 @@ betaNonSpatial <- function(formula, data,
   P    <- ncol(X)
   nvar <- P + 1
 
+  W <- as.matrix(proxmat)
+  if (any(is.na(W))) stop("Proximity matrix contains NA.")
+  if (nrow(W) != N || ncol(W) != N) stop("Proximity matrix must be N x N.")
+
+  D_mat <- diag(rowSums(W))
+  R_mat <- D_mat - W
+  I     <- diag(1, N)
+  O     <- rep(0, N)
+
   mu_beta  <- if (!is.null(coef)) coef else rep(0, nvar)
   tau_beta <- if (!is.null(var.coef)) 1/var.coef else rep(1, nvar)
   tau.va <- 1
   tau.vb <- 1
 
   inits_list <- lapply(1:chains, function(c) {
-    list(v = rep(0, N), beta = mu_beta, tau_v = tau.v, phi = 1,
+    list(v = rep(0, N), beta = mu_beta, tau_v = tau.v, rho = 0.5, phi = 1,
          .RNG.name = "base::Wichmann-Hill", .RNG.seed = seed + c)
   })
 
   # Model definitions
-  # Model 1: Fully Sampled Data (Non-Spatial)
+  # Model 1: Fully Sampled Data (CAR Leroux)
   model_sampled <- "model {
     for (i in 1:N) {
       y[i] ~ dbeta(shape1[i], shape2[i])
@@ -104,19 +114,29 @@ betaNonSpatial <- function(formula, data,
       shape2[i] <- (1 - mu[i]) * phi
 
       logit(mu[i]) <- beta[1] + inprod(beta[2:(P+1)], X[i, ]) + v[i]
-      v[i] ~ dnorm(0, tau_v)
+      a.var[i] <- sig_v[i, i]
     }
+
+    for (i in 1:N) {
+      for (j in 1:N) {
+        Q[i,j] <- tau_v * ((1 - rho) * I[i,j] + rho * R_mat[i,j])
+      }
+    }
+
+    sig_v <- inverse(Q)
+    v ~ dmnorm(O, Q)
 
     for (k in 1:(P+1)) {
       beta[k] ~ dnorm(mu_beta[k], tau_beta[k])
     }
     tau_v ~ dgamma(tau.va, tau.vb)
+    rho ~ dunif(0, 1)
     sigma2_v <- 1 / tau_v
 
     phi ~ dgamma(4, 0.2)
   }"
 
-  # Model 2: Data with NAs (Non-Spatial)
+  # Model 2: Data with NAs (CAR Leroux)
   model_nonsampled <- "model {
     for (i in 1:N_samp) {
       y_samp[i] ~ dbeta(shape1[i], shape2[i])
@@ -126,23 +146,34 @@ betaNonSpatial <- function(formula, data,
 
     for (j in 1:N) {
       logit(mu[j]) <- beta[1] + inprod(beta[2:(P+1)], X[j, ]) + v[j]
-      v[j] ~ dnorm(0, tau_v)
+      a.var[j] <- sig_v[j, j]
     }
+
+    for (i in 1:N) {
+      for (j in 1:N) {
+        Q[i,j] <- tau_v * ((1 - rho) * I[i,j] + rho * R_mat[i,j])
+      }
+    }
+
+    sig_v <- inverse(Q)
+    v ~ dmnorm(O, Q)
 
     for (k in 1:(P+1)) {
       beta[k] ~ dnorm(mu_beta[k], tau_beta[k])
     }
     tau_v ~ dgamma(tau.va, tau.vb)
+    rho ~ dunif(0, 1)
     sigma2_v <- 1 / tau_v
 
     phi ~ dgamma(4, 0.2)
   }"
 
-  params <- c("mu", "beta", "tau_v", "sigma2_v", "v", "phi")
+  params <- c("mu", "a.var", "beta", "rho", "tau_v", "sigma2_v", "v", "phi")
 
   if (!any(is.na(y_all))) {
     for (i in 1:iter.update) {
       dat <- list(N = N, P = P, y = y_all, X = X,
+                  R_mat = R_mat, I = I, O = O,
                   mu_beta = mu_beta, tau_beta = tau_beta, tau.va = tau.va, tau.vb = tau.vb)
 
       jags.m <- rjags::jags.model(file = textConnection(model_sampled), data = dat,
@@ -170,6 +201,7 @@ betaNonSpatial <- function(formula, data,
     for (i in 1:iter.update) {
       dat <- list(N = N, P = P, N_samp = N_samp, y_samp = y_samp, idx_samp = idx_samp,
                   X = X,
+                  R_mat = R_mat, I = I, O = O,
                   mu_beta = mu_beta, tau_beta = tau_beta, tau.va = tau.va, tau.vb = tau.vb)
 
       jags.m <- rjags::jags.model(file = textConnection(model_nonsampled), data = dat,
@@ -201,25 +233,25 @@ betaNonSpatial <- function(formula, data,
   }
 
   mu_idx <- grep("^mu\\[", rownames(res_sum$statistics))
-  Estimation <- data.frame(res_sum$statistics[mu_idx, 1:2], res_sum$quantiles[mu_idx, c(1,5)])
-  colnames(Estimation) <- c("Estimate", "Est.Error", "l-95% CI", "u-95% CI")
+  estimation <- data.frame(res_sum$statistics[mu_idx, 1:2], res_sum$quantiles[mu_idx, c(1,5)])
+  colnames(estimation) <- c("Estimate", "Est.Error", "l-95% CI", "u-95% CI")
 
   v_idx <- grep("^v\\[", rownames(res_sum$statistics))
   randeff <- data.frame(res_sum$statistics[v_idx, 1:2], res_sum$quantiles[v_idx, c(1,5)])
   colnames(randeff) <- c("Estimate", "Est.Error", "l-95% CI", "u-95% CI")
 
-  sig_idx <- grep("^sigma2_v", rownames(res_sum$statistics))
-  refVar <- data.frame(rbind(res_sum$statistics[sig_idx, 1:2]), rbind(res_sum$quantiles[sig_idx, c(1,5)]))
-  rownames(refVar) <- "sigma2_v"
-  colnames(refVar) <- c("Estimate", "Est.Error", "l-95% CI", "u-95% CI")
+  a_var_idx <- grep("^a\\.var\\[", rownames(res_sum$statistics))
+  refvar <- data.frame(res_sum$statistics[a_var_idx, 1:2], res_sum$quantiles[a_var_idx, c(1,5)])
+  colnames(refvar) <- c("Estimate", "Est.Error", "l-95% CI", "u-95% CI")
 
   b_idx   <- grep("^beta\\[", rownames(res_sum$statistics))
+  rho_idx <- grep("^rho", rownames(res_sum$statistics))
   phi_idx <- grep("^phi", rownames(res_sum$statistics))
 
-  coef_stats <- rbind(res_sum$statistics[b_idx, 1:2, drop = FALSE], res_sum$statistics[phi_idx, 1:2, drop = FALSE])
-  coef_quant <- rbind(res_sum$quantiles[b_idx, c(1,5), drop = FALSE], res_sum$quantiles[phi_idx, c(1,5), drop = FALSE])
-  coef_rhat  <- c(Rhat_raw[b_idx], Rhat_raw[phi_idx])
-  coef_ess   <- c(ESS[b_idx], ESS[phi_idx])
+  coef_stats <- rbind(res_sum$statistics[b_idx, 1:2], res_sum$statistics[rho_idx, 1:2], res_sum$statistics[phi_idx, 1:2])
+  coef_quant <- rbind(res_sum$quantiles[b_idx, c(1,5)], res_sum$quantiles[rho_idx, c(1,5)], res_sum$quantiles[phi_idx, c(1,5)])
+  coef_rhat  <- c(Rhat_raw[b_idx], Rhat_raw[rho_idx], Rhat_raw[phi_idx])
+  coef_ess   <- c(ESS[b_idx], ESS[rho_idx], ESS[phi_idx])
 
   coefficient <- data.frame(coef_stats, coef_quant, coef_rhat, coef_ess)
 
@@ -227,18 +259,18 @@ betaNonSpatial <- function(formula, data,
   for (i in 1:nvar) {
     b_varnames[i] <- paste0("beta[", i - 1, "]")
   }
-  rownames(coefficient) <- c(b_varnames, "phi")
+  rownames(coefficient) <- c(b_varnames, "rho", "phi")
   colnames(coefficient) <- c("Estimate", "Est.Error", "l-95% CI", "u-95% CI", "Rhat", "ESS")
 
-  result$Est         <- Estimation
-  result$refVar      <- refVar
+  result$est         <- estimation
   result$randeff     <- randeff
+  result$refvar      <- refvar
   result$coefficient <- coefficient
 
   if (keep.fit) result$fit <- samps1
 
   if (plot) {
-    plot_idx <- c(b_idx, phi_idx)
+    plot_idx <- c(b_idx, rho_idx, phi_idx)
     result_mcmc <- samps1[, plot_idx, drop = FALSE]
     coda::varnames(result_mcmc) <- rownames(coefficient)
 
