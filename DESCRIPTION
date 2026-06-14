@@ -2,16 +2,8 @@ Package: saeHB.Spatial.Beta
 Type: Package
 Title: Small Area Estimation Hierarchical Bayes for Spatial Beta Model
 Version: 0.1.0
-Authors@R: c(
-    person(given = "Boby", family = "Iwan", role = c("aut", "cre"), email = "bobyiwanboby2122@gmail.com"),
-    person(given = "Cucu", family = "Sumarni", role = "aut")
-  )
-Description: Provides several functions and datasets for area-level Small Area Estimation 
-    using the Hierarchical Bayesian (HB) method. Model-based estimators are designed for 
-    variables of interest that follow a Beta distribution. The package supports spatial 
-    structures under the Simultaneous Autoregressive (SAR) and Leroux Conditional 
-    Autoregressive (CAR) models, accommodating survey design effect (DEFF) adjustments. 
-    The 'rjags' package is employed to obtain parameter estimates via Gibbs Sampling.
+Authors@R: c(person(given = "Boby", family = "Iwan", role = c("aut", "cre"), email = "bobyiwanboby2122@gmail.com"), person(given = "Cucu", family = "Sumarni", role = "aut"))
+Description: Provides several functions and datasets for area-level Small Area Estimation using the Hierarchical Bayesian (HB) method. Model-based estimators are designed for variables of interest that follow a Beta distribution. The package supports spatial structures under the Simultaneous Autoregressive (SAR) and Leroux Conditional Autoregressive (CAR) models, accommodating survey design effect (DEFF) adjustments. The 'rjags' package is employed to obtain parameter estimates via Gibbs Sampling. For references, see Rao and Molina (2015) <doi:10.1002/9781118735855>, Kubacki and Jedrzejczak (2016) <doi:10.59170/stattrans-2016-022>, Leroux et al. (2000) <doi:10.1007/978-1-4612-1284-3_4>, and Chung and Datta (2020) <https://www.census.gov/content/dam/Census/library/working-papers/2020/adrm/RRS2020-07.pdf>.
 License: GPL-3
 Encoding: UTF-8
 LazyData: true

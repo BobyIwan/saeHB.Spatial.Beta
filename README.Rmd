@@ -15,8 +15,7 @@ knitr::opts_chunk$set(
 
 # saeHB.Spatial.Beta
 
-Provides several functions and datasets for area-level Small Area Estimation using the Hierarchical Bayesian (HB) method. Model-based estimators are designed for variables of interest that follow a Beta distribution (proportions bounded between 0 and 1). The package supports spatial structures under the Simultaneous Autoregressive (SAR) model and the Leroux Conditional Autoregressive (CAR) model. It also accommodates survey design effect (DEFF) adjustments to handle complex survey data. The `rjags` package is employed to obtain parameter estimates via Markov Chain Monte Carlo (MCMC).
-
+We designed this package to provide several functions for area-level small area estimation under Spatial Simultaneous Autoregressive (SAR) and Leroux Conditional Autoregressive (CAR) models, accommodating survey design effect (DEFF) adjustments, using hierarchical Bayesian (HB) method with Beta distribution for variables of interest. Some datasets simulated by a data generation are also provided. The `rjags` package is employed to obtain parameter estimates using Gibbs Sampling algorithm. Model-based estimators involve the HB estimators which include the mean estimation, the estimated model coefficients, the random effect, and the random effect variance. For the reference, see Rao and Molina (2015), Kubacki and Jedrzejczak (2016), Leroux et al. (2000), and Chung and Datta (2020).
 
 ## Author
 Boby Iwan, Cucu Sumarni
