@@ -3,7 +3,7 @@
 \docType{data}
 \name{databeta_na}
 \alias{databeta_na}
-\title{Synthetic Data with Missing Values for Small Area Estimation}
+\title{Synthetic Data with Missing Values for Small Area Estimation using Hierarchical Bayesian Spatial Beta Models}
 \format{
 A data frame with 36 rows and 6 columns:
 \describe{

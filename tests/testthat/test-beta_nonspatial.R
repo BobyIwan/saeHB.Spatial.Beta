@@ -47,15 +47,23 @@ test_that("Unit Testing for beta_nonspatial: Error Handling", {
     "Auxiliary variables contain NA values"
   )
 
-  # Case 5: Iteration update is less than 3
-  expect_error(
-    beta_nonspatial(y ~ x1 + x2, data = databeta, iter.update = 2, plot = FALSE),
-    "The number of iteration updates must be at least 3"
-  )
-
-  # Case 6: Formula without predictor
+  # Case 5: Formula without predictor or intercept
   expect_error(
     beta_nonspatial(y ~ 1, data = databeta, plot = FALSE),
     "Formula must include response and at least 1 predictor"
   )
+  expect_error(
+    beta_nonspatial(y ~ x1 - 1, data = databeta, plot = FALSE),
+    "Model must include an intercept"
+  )
+
+  # Case 6: MCMC and Prior hyperparameters validation errors
+  expect_error(beta_nonspatial(y ~ x1 + x2, data = databeta, iter.update = 2, plot = FALSE), "The number of iteration updates must be at least 3")
+  expect_error(beta_nonspatial(y ~ x1 + x2, data = databeta, iter.mcmc = 50, burn.in = 100, plot = FALSE), "iter.mcmc must exceed burn.in")
+  expect_error(beta_nonspatial(y ~ x1 + x2, data = databeta, thin = 0, plot = FALSE), "thin must be >= 1")
+  expect_error(beta_nonspatial(y ~ x1 + x2, data = databeta, chains = 0, plot = FALSE), "chains must be >= 1")
+  expect_error(beta_nonspatial(y ~ x1 + x2, data = databeta, tau.v = -1, plot = FALSE), "tau.v must be positive")
+  expect_error(beta_nonspatial(y ~ x1 + x2, data = databeta, seed = 0, plot = FALSE), "seed must be positive")
+  expect_error(beta_nonspatial(y ~ x1 + x2, data = databeta, coef = c(1, 2), plot = FALSE), "coef must have length equal to")
+  expect_error(beta_nonspatial(y ~ x1 + x2, data = databeta, var.coef = c(1, 1, -1), plot = FALSE), "All values in var.coef must be positive")
 })

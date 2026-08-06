@@ -63,12 +63,32 @@ test_that("Unit Testing for betadeff_nonspatial: Error Handling", {
   data_invalid_n$deff[1] <- 2.0
   expect_error(
     betadeff_nonspatial(y ~ x1 + x2, "deff", "n_i", data = data_invalid_n, plot = FALSE),
-    "There is at least one sampled area where n_i <= deff. Effective sample size must be > 1"
+    "There is at least one sampled area where n_i <= deff"
   )
 
-  # Case 7: Formula without predictor
+  # Case 7: Formula without predictor or intercept
   expect_error(
     betadeff_nonspatial(y ~ 1, "deff", "n_i", data = databeta, plot = FALSE),
     "Formula must include response and at least 1 predictor"
   )
+  expect_error(
+    betadeff_nonspatial(y ~ x1 - 1, "deff", "n_i", data = databeta, plot = FALSE),
+    "Model must include an intercept"
+  )
+
+  # Case 8: DEFF and n_i missing or negative value errors
+  data_na_deff <- databeta; data_na_deff$deff[1] <- NA
+  expect_error(betadeff_nonspatial(y ~ x1 + x2, "deff", "n_i", data = data_na_deff, plot = FALSE), "Design effect contains NA values")
+
+  data_neg_ni <- databeta; data_neg_ni$n_i[1] <- -1
+  expect_error(betadeff_nonspatial(y ~ x1 + x2, "deff", "n_i", data = data_neg_ni, plot = FALSE), "Sample sizes in sampled areas must be positive")
+
+  # Case 9: MCMC and Prior hyperparameters validation errors
+  expect_error(betadeff_nonspatial(y ~ x1 + x2, "deff", "n_i", data = databeta, iter.mcmc = 50, burn.in = 100, plot = FALSE), "iter.mcmc must exceed burn.in")
+  expect_error(betadeff_nonspatial(y ~ x1 + x2, "deff", "n_i", data = databeta, thin = 0, plot = FALSE), "thin must be >= 1")
+  expect_error(betadeff_nonspatial(y ~ x1 + x2, "deff", "n_i", data = databeta, chains = 0, plot = FALSE), "chains must be >= 1")
+  expect_error(betadeff_nonspatial(y ~ x1 + x2, "deff", "n_i", data = databeta, tau.v = -1, plot = FALSE), "tau.v must be positive")
+  expect_error(betadeff_nonspatial(y ~ x1 + x2, "deff", "n_i", data = databeta, seed = 0, plot = FALSE), "seed must be positive")
+  expect_error(betadeff_nonspatial(y ~ x1 + x2, "deff", "n_i", data = databeta, coef = c(1, 2), plot = FALSE), "coef must have length equal to")
+  expect_error(betadeff_nonspatial(y ~ x1 + x2, "deff", "n_i", data = databeta, var.coef = c(1, 1, -1), plot = FALSE), "All values in var.coef must be positive")
 })

@@ -1,57 +1,64 @@
 #' @title Moran's I Test for Spatial Autocorrelation
 #'
-#' @description This function provides a convenient wrapper to perform Moran's I test for spatial autocorrelation on a numeric vector. It seamlessly handles missing values (NA) by subsetting both the numeric vector and the spatial weights list simultaneously.
+#' @description This function performs Moran's I test for detecting global spatial autocorrelation. It provides a convenient wrapper around \code{spdep::moran.test()} and \code{spdep::moran.mc()}, with automatic handling of missing values (NA) by seamlessly subsetting both the response vector and the spatial weights object simultaneously.
 #'
 #' @details
 #' This function supports two approaches to testing the significance of Moran's I:
 #'
 #' \strong{1. Analytical Approach (Randomization - Default)}
 #' \cr
-#' When \code{mc = FALSE}, the function uses the analytical approach (specifically, the assumption of randomization). It computes the theoretical expectation and variance of Moran's I under the null hypothesis of no spatial autocorrelation. This method assumes that the observed values could have occurred in any spatial location with equal probability.
+#' When \code{mc = FALSE}, the function uses the analytical approach (specifically, the assumption of randomization). It computes the theoretical expectation and variance of Moran's I under the null hypothesis of no spatial autocorrelation. This approach relies on an asymptotic approximation of the sampling distribution of Moran's I.
 #' \cr
 #' \emph{When to use:} Use this approach when your dataset is relatively large and follows standard statistical assumptions. It is computationally fast and provides reliable asymptotic p-values for large \eqn{N}.
 #'
 #' \strong{2. Monte Carlo Permutation Approach (\code{mc = TRUE})}
 #' \cr
-#' When \code{mc = TRUE}, the function calculates the p-value empirically. It randomly permutes (shuffles) the observed values \code{x} across the spatial units \code{nsim} times. For each permutation, it calculates a pseudo-Moran's I. The final p-value is the proportion of simulated Moran's I values that are as extreme as or more extreme than the observed Moran's I.
-#' \cr
-#' \emph{When to use:} Use this approach when your dataset has a relatively small number of areas or when you want to avoid relying on asymptotic theory. Because it computes the p-value empirically without assuming a specific theoretical distribution for the Moran's I statistic, the Monte Carlo approach is highly robust and is widely recommended for evaluating MCMC outputs.
+#' When \code{mc = TRUE}, the function calculates the p-value empirically. It randomly permutes (shuffles) the observed values \code{x} across the spatial units \code{nsim} times. Because it computes the p-value empirically without relying on asymptotic theory, the Monte Carlo permutation approach is particularly useful for small datasets or when the assumptions of the analytical test may not hold.
 #'
 #' @param x A numeric vector of the variable of interest (e.g., residuals, random effects, or raw data).
-#' @param listw A \code{listw} object containing spatial weights created by \code{build_w} or \code{spdep}.
+#' @param listw A \code{listw} object containing spatial weights, typically created by \code{build_w()}.
 #' @param alternative A character string specifying the alternative hypothesis. Must be one of \code{"greater"} (default), \code{"less"}, or \code{"two.sided"}.
 #' @param mc Logical; if \code{TRUE}, performs Moran's I test using Monte Carlo permutations. Default is \code{FALSE} (analytical approach).
 #' @param nsim An integer specifying the number of permutations if \code{mc = TRUE}. Default is \code{999}.
 #' @param zero.policy Logical; if \code{TRUE}, allows areas with no neighbors (isolates) to be included in the calculation. Default is \code{TRUE}.
 #' @param na.rm Logical; if \code{TRUE}, missing values in \code{x} are removed, and the corresponding rows/columns in the spatial weights are automatically subsetted. Default is \code{TRUE}.
 #'
-#' @return A list with class \code{htest} containing the following components:
+#' @return An object of class \code{htest} (if \code{mc = FALSE}) or \code{mc.sim} (if \code{mc = TRUE}). The returned components depend on the selected test, following the corresponding \code{spdep} implementation. Common components include:
 #' \itemize{
 #'   \item \code{statistic}: The value of the standard deviate of Moran's I.
 #'   \item \code{p.value}: The p-value of the test.
-#'   \item \code{estimate}: The value of the observed Moran's I, its expectation, and variance.
 #'   \item \code{method}: A character string indicating the type of test performed.
 #'   \item \code{data.name}: A character string giving the name(s) of the data.
 #' }
 #'
 #' @examples
-#' # Load datasets
-#' data(databeta)
-#' data(weight_mat)
+#' library(sf)
 #'
-#' # Convert the spatial weights matrix to a 'listw' object
-#' W_listw <- spdep::mat2listw(weight_mat, style = "W", zero.policy = TRUE)
+#' # 1. Prepare dummy data
+#' bbox <- st_bbox(c(xmin = 0, ymin = 0, xmax = 3, ymax = 3))
+#' grid <- st_make_grid(bbox, n = c(3, 3))
+#' grid_sf <- st_sf(id = 1:9, geometry = grid)
+#' set.seed(123)
+#' grid_sf$y <- rnorm(9)
 #'
-#' # Perform Moran's I test (Analytical approach)
-#' moran_test(x = databeta$y, listw = W_listw)
+#' # 2. Build spatial weights using the package's native function
+#' W_obj <- build_w(
+#'   data = grid_sf,
+#'   method = "contiguity",
+#'   contiguity = "queen",
+#'   output = "all"
+#' )
 #'
-#' # Perform Moran's I test (Monte Carlo permutation approach)
-#' moran_test(x = databeta$y, listw = W_listw, mc = TRUE, nsim = 99)
+#' # 3. Perform Moran's I test (Analytical approach)
+#' moran_test(x = grid_sf$y, listw = W_obj$listw)
 #'
-#' # Handling Missing Values automatically (na.rm = TRUE is default)
-#' y_with_na <- databeta$y
+#' # 4. Perform Moran's I test (Monte Carlo permutation approach)
+#' moran_test(x = grid_sf$y, listw = W_obj$listw, mc = TRUE, nsim = 99)
+#'
+#' # 5. Handling Missing Values automatically
+#' y_with_na <- grid_sf$y
 #' y_with_na[c(2, 5)] <- NA
-#' moran_test(x = y_with_na, listw = W_listw, na.rm = TRUE)
+#' moran_test(x = y_with_na, listw = W_obj$listw, na.rm = TRUE)
 #'
 #' @import spdep
 #'
@@ -65,12 +72,20 @@ moran_test <- function(x,
                        na.rm = TRUE) {
 
   alternative <- match.arg(alternative)
-
   var_name <- deparse(substitute(x))
 
   if (!is.numeric(x)) stop("Argument 'x' must be a numeric vector.")
-  if (!inherits(listw, "listw")) {
-    stop("Argument 'listw' must be an object of class 'listw'.")
+  if (!inherits(listw, "listw")) stop("Argument 'listw' must be an object of class 'listw'.")
+
+  # Validation: Check if length of x matches the spatial weights dimensions
+  if (length(x) != length(listw$neighbours)) {
+    stop(
+      sprintf(
+        "Length of x (%d) does not match the number of spatial units in listw (%d).",
+        length(x),
+        length(listw$neighbours)
+      )
+    )
   }
 
   if (any(is.na(x))) {
@@ -95,7 +110,6 @@ moran_test <- function(x,
       })
 
       message(sprintf("Info: %d missing values detected and removed. Spatial weights subsetted accordingly.", n_missing))
-
       var_name <- paste0(var_name, " (", n_missing, " NA removed)")
     } else {
       stop("Missing values (NA) detected in 'x'. Set na.rm = TRUE to handle them automatically.")
@@ -116,7 +130,7 @@ moran_test <- function(x,
                              listw = listw,
                              alternative = alternative,
                              zero.policy = zero.policy)
-    res$method <- "Moran's I test under randomization"
+    res$method <- "Moran's I test under randomization (analytical)"
   }
 
   res$data.name <- var_name

@@ -6,7 +6,7 @@ test_that("moran_test works correctly with valid data", {
   res <- moran_test(x = databeta$y, listw = W_listw)
 
   expect_s3_class(res, "htest")
-  expect_equal(res$method, "Moran's I test under randomization")
+  expect_equal(res$method, "Moran's I test under randomization (analytical)")
   expect_true(is.numeric(res$statistic))
 })
 
@@ -39,6 +39,11 @@ test_that("moran_test works with Monte Carlo permutation and alternative hypothe
   # Test non-default alternative hypothesis
   res_less <- moran_test(x = databeta$y, listw = W_listw, alternative = "less")
   expect_match(res_less$alternative, "less")
+
+  # Test alternative = "two.sided"
+  res_two <- moran_test(x = databeta$y, listw = W_listw, alternative = "two.sided")
+  expect_match(res_two$alternative, "two.sided")
+
 })
 
 test_that("moran_test stops with invalid inputs", {
@@ -56,8 +61,14 @@ test_that("moran_test stops with invalid inputs", {
     "must be an object of class 'listw'"
   )
 
+  # Error if length of x does not match listw
+  expect_error(
+    moran_test(x = databeta$y[1:10], listw = W_listw),
+    "does not match the number of spatial units"
+  )
+
   # Error if valid data points are less than 3
-  x_short <- c(1, 2, rep(NA, 98))
+  x_short <- c(1, 2, rep(NA, 34))
   expect_error(
     moran_test(x = x_short, listw = W_listw, na.rm = TRUE),
     "Not enough valid data points"

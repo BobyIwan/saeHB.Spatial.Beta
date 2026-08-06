@@ -66,17 +66,16 @@ test_that("Unit Testing for betadeff_sar: Error Handling", {
   data_invalid_n$deff[1] <- 2.0
   expect_error(
     betadeff_sar(y ~ x1 + x2, "deff", "n_i", weight_mat, data_invalid_n, plot = FALSE),
-    "There is at least one sampled area where n_i <= deff. Effective sample size must be > 1"
+    "There is at least one sampled area where n_i <= deff"
   )
 
-  # Case 7: Proximity matrix dimension mismatch
+  # Case 7: Proximity matrix dimension mismatch and NA
   wrong_W <- weight_mat[1:10, 1:10]
   expect_error(
     betadeff_sar(y ~ x1 + x2, "deff", "n_i", wrong_W, databeta, plot = FALSE),
     "Proximity matrix must be N x N"
   )
 
-  # Case 8: Proximity matrix contains NA
   na_W <- weight_mat
   na_W[1, 2] <- NA
   expect_error(
@@ -84,9 +83,36 @@ test_that("Unit Testing for betadeff_sar: Error Handling", {
     "Proximity matrix contains NA"
   )
 
-  # Case 9: Formula without predictor
+  # Case 8: Formula without predictor or intercept
   expect_error(
     betadeff_sar(y ~ 1, "deff", "n_i", weight_mat, databeta, plot = FALSE),
     "Formula must include response and at least 1 predictor"
   )
+  expect_error(
+    betadeff_sar(y ~ x1 - 1, "deff", "n_i", weight_mat, databeta, plot = FALSE),
+    "Model must include an intercept"
+  )
+
+  # Case 9: Matrix row-standardization and diagonal validation errors
+  unstd_W <- weight_mat; unstd_W[1, 2] <- 0.99
+  expect_error(betadeff_sar(y ~ x1 + x2, "deff", "n_i", unstd_W, databeta, plot = FALSE), "Each row of proxmat must sum to 1")
+
+  diag_W <- weight_mat; diag_W[1, 1] <- 0.5; diag_W[1, 2] <- diag_W[1, 2] - 0.5
+  expect_error(betadeff_sar(y ~ x1 + x2, "deff", "n_i", diag_W, databeta, plot = FALSE), "Diagonal elements of proxmat must be zero")
+
+  # Case 10: DEFF and n_i missing or negative value errors
+  data_na_deff <- databeta; data_na_deff$deff[1] <- NA
+  expect_error(betadeff_sar(y ~ x1 + x2, "deff", "n_i", weight_mat, data_na_deff, plot = FALSE), "Design effect contains NA values")
+
+  data_neg_ni <- databeta; data_neg_ni$n_i[1] <- -1
+  expect_error(betadeff_sar(y ~ x1 + x2, "deff", "n_i", weight_mat, data_neg_ni, plot = FALSE), "Sample sizes in sampled areas must be positive")
+
+  # Case 11: MCMC and Prior hyperparameters validation errors
+  expect_error(betadeff_sar(y ~ x1 + x2, "deff", "n_i", weight_mat, databeta, iter.mcmc = 50, burn.in = 100, plot = FALSE), "iter.mcmc must exceed burn.in")
+  expect_error(betadeff_sar(y ~ x1 + x2, "deff", "n_i", weight_mat, databeta, thin = 0, plot = FALSE), "thin must be >= 1")
+  expect_error(betadeff_sar(y ~ x1 + x2, "deff", "n_i", weight_mat, databeta, chains = 0, plot = FALSE), "chains must be >= 1")
+  expect_error(betadeff_sar(y ~ x1 + x2, "deff", "n_i", weight_mat, databeta, tau.u = -1, plot = FALSE), "tau.u must be positive")
+  expect_error(betadeff_sar(y ~ x1 + x2, "deff", "n_i", weight_mat, databeta, seed = 0, plot = FALSE), "seed must be positive")
+  expect_error(betadeff_sar(y ~ x1 + x2, "deff", "n_i", weight_mat, databeta, coef = c(1, 2), plot = FALSE), "coef must have length equal to")
+  expect_error(betadeff_sar(y ~ x1 + x2, "deff", "n_i", weight_mat, databeta, var.coef = c(1, 1, -1), plot = FALSE), "All values in var.coef must be positive")
 })

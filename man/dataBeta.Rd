@@ -3,7 +3,7 @@
 \docType{data}
 \name{databeta}
 \alias{databeta}
-\title{Synthetic Data for Small Area Estimation using Spatial Beta Model}
+\title{Synthetic Data for Small Area Estimation using Hierarchical Bayesian Spatial Beta Models}
 \format{
 A data frame with 36 rows and 6 columns:
 \describe{

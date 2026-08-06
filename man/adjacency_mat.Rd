@@ -12,6 +12,6 @@ data(adjacency_mat)
 }
 \description{
 A binary adjacency matrix (\code{B}) generated from a 6x6 regular grid using Queen contiguity.
-This matrix is mathematically suitable for the Leroux Conditional Autoregressive (CAR) model.
+This matrix is mathematically suitable for the Hierarchical Bayesian (HB) Spatial Beta-Leroux CAR model.
 }
 \keyword{datasets}

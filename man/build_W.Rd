@@ -9,6 +9,9 @@ build_w(
   coords = NULL,
   method = c("contiguity", "distance", "kernel"),
   contiguity = c("queen", "rook", "bishop"),
+  fallback = c("knn", "distance", "none"),
+  fallback_k = 2,
+  fallback_dmax = NULL,
   distance = c("knn", "inverse_distance", "exponential"),
   k = 2,
   dmax = NULL,
@@ -18,64 +21,61 @@ build_w(
   kernel = c("uniform", "gaussian", "triangular", "epanechnikov", "quartic"),
   bandwidth = NULL,
   lonlat = TRUE,
-  style = "W",
+  style = c("W", "B"),
   zero.policy = TRUE,
-  fallback = c("knn", "distance", "none"),
-  fallback_k = 2,
-  fallback_dmax = NULL,
   output = c("all", "matrix", "listw", "nb")
 )
 }
 \arguments{
-\item{data}{An \code{sf} object (polygons/points) or a standard data frame. If a standard data frame is provided, \code{coords} must be specified.}
+\item{data}{An \code{sf} object containing spatial polygons/points, or a standard data frame.}
 
-\item{coords}{An \eqn{N \times 2} matrix of coordinates. Required if \code{data} is not an \code{sf} object.}
+\item{coords}{An \eqn{N \times 2} matrix of spatial coordinates. Required only if \code{data} is not an \code{sf} object.}
 
 \item{method}{A string indicating the spatial weight construction method. Options are \code{"contiguity"}, \code{"distance"}, or \code{"kernel"}.}
 
-\item{contiguity}{A string indicating the contiguity type. Options are \code{"queen"}, \code{"rook"}, or \code{"bishop"}.}
+\item{contiguity}{A string indicating the contiguity type. Options are \code{"queen"}, \code{"rook"}, or \code{"bishop"}. Required if \code{method = "contiguity"}.}
 
-\item{distance}{A string indicating the distance-based type. Options are \code{"knn"}, \code{"inverse_distance"}, or \code{"exponential"}.}
+\item{fallback}{A string indicating the fallback method for isolated areas when using contiguity. Options are \code{"knn"}, \code{"distance"}, or \code{"none"}. Default is \code{"knn"}.}
 
-\item{k}{An integer specifying the number of nearest neighbors for KNN methods. Default is \code{2}.}
+\item{fallback_k}{An integer specifying the number of neighbors for the fallback method. Used if \code{fallback = "knn"}. Default is \code{2}.}
 
-\item{dmax}{A numeric specifying the maximum distance threshold for distance-based neighbors. The unit depends on \code{lonlat} (kilometers if \code{TRUE}, native coordinate units/meters if \code{FALSE}).}
+\item{fallback_dmax}{A numeric specifying the maximum distance for the fallback method. Required if \code{fallback = "distance"}.}
 
-\item{power}{A numeric specifying the decay power for inverse distance weights. Default is \code{1}.}
+\item{distance}{A string indicating the distance-based type. Options are \code{"knn"}, \code{"inverse_distance"}, or \code{"exponential"}. Required if \code{method = "distance"}.}
 
-\item{alpha}{A numeric specifying the decay parameter for exponential distance weights. Default is \code{1}.}
+\item{k}{An integer specifying the number of nearest neighbors. Used if \code{distance = "knn"}. Default is \code{2}.}
 
-\item{epsilon}{A small numeric value to prevent division by zero in inverse distance calculation. Default is \code{1e-12}.}
+\item{dmax}{A numeric specifying the maximum distance threshold. Required if \code{distance} is \code{"inverse_distance"} or \code{"exponential"}.}
 
-\item{kernel}{A string indicating the type of spatial kernel. Options are \code{"uniform"}, \code{"gaussian"}, \code{"triangular"}, \code{"epanechnikov"}, or \code{"quartic"}.}
+\item{power}{A numeric specifying the decay power. Used if \code{distance = "inverse_distance"}. Default is \code{1}.}
 
-\item{bandwidth}{A numeric specifying the bandwidth (\eqn{h}) for kernel weights. Required if \code{method = "kernel"}. The unit depends on \code{lonlat} (kilometers if \code{TRUE}, native coordinate units/meters if \code{FALSE}).}
+\item{alpha}{A numeric specifying the decay parameter. Used if \code{distance = "exponential"}. Default is \code{1}.}
 
-\item{lonlat}{Logical; if \code{TRUE}, coordinates are treated as Longitude/Latitude, spherical distances are calculated, and limits are in \strong{kilometers (km)}. If \code{FALSE}, coordinates are assumed to be planar (e.g., UTM), Euclidean distances are calculated, and limits are in the native unit of the coordinates (usually \strong{meters}). Default is \code{TRUE}.}
+\item{epsilon}{A small numeric value to prevent division by zero in inverse distance calculations. Default is \code{1e-12}.}
 
-\item{style}{A character string specifying the spatial weights coding scheme (\code{"W"} for row-standardized or \code{"B"} for binary). Default is \code{"W"}.}
+\item{kernel}{A string indicating the type of spatial kernel. Options are \code{"uniform"}, \code{"gaussian"}, \code{"triangular"}, \code{"epanechnikov"}, or \code{"quartic"}. Required if \code{method = "kernel"}.}
+
+\item{bandwidth}{A numeric specifying the bandwidth (\eqn{h}) for kernel weights. Required if \code{method = "kernel"}.}
+
+\item{lonlat}{Logical; if \code{TRUE}, coordinates are treated as Longitude/Latitude (degrees), and distances are calculated in kilometers. If \code{FALSE}, distances are calculated using Euclidean geometry in the native units of the coordinates (typically meters for projected CRS). Default is \code{TRUE}.}
+
+\item{style}{A character string specifying the spatial weights coding scheme. Options are \code{"W"} (row-standardized, for HB Beta SAR models) or \code{"B"} (binary adjacency, for HB Beta Leroux CAR models). Default is \code{"W"}.}
 
 \item{zero.policy}{Logical; if \code{TRUE}, areas with no neighbors are allowed to have zero-weight rows. Default is \code{TRUE}.}
 
-\item{fallback}{A string indicating the fallback method for isolated areas (without neighbors) when using contiguity. Options are \code{"knn"}, \code{"distance"}, or \code{"none"}. Default is \code{"knn"}.}
-
-\item{fallback_k}{An integer specifying the number of neighbors for the fallback method. Default is \code{2}.}
-
-\item{fallback_dmax}{A numeric specifying the maximum distance for the fallback method.}
-
-\item{output}{A string specifying the format of the output. Options are \code{"all"} (returns a comprehensive list), \code{"matrix"}, \code{"listw"}, or \code{"nb"}. Default is \code{"all"}.}
+\item{output}{A character string specifying the desired format of the returned object. Options are \code{"all"}, \code{"matrix"}, \code{"listw"}, or \code{"nb"}. Default is \code{"all"}.}
 }
 \value{
 Depending on the \code{output} argument, this function returns:
 \itemize{
-  \item \code{"matrix"}: An \eqn{N \times N} spatial weights matrix.
-  \item \code{"listw"}: A \code{listw} object compatible with \code{spdep} functions.
-  \item \code{"nb"}: An \code{nb} (neighborhood) object.
-  \item \code{"all"}: A list containing \code{W} (matrix), \code{listw}, \code{nb}, \code{info} (method details), and \code{diag} (diagnostic metrics for isolates and fallback).
+  \item \strong{\code{"matrix"}}: An \eqn{N \times N} spatial weights matrix (\code{W}). Used as the spatial weight input for SAR and Leroux CAR models.
+  \item \strong{\code{"listw"}}: A \code{listw} object. Used as the input for \code{moran_test()}.
+  \item \strong{\code{"nb"}}: An \code{nb} (neighborhood) object representing the list of neighbors for each area.
+  \item \strong{\code{"all"}}: A comprehensive list containing \code{W}, \code{listw}, \code{nb}, \code{info}, and \code{diag}.
 }
 }
 \description{
-This function constructs spatial weights matrices (\eqn{W}) for spatial modeling. It supports various methods including Contiguity, Distance-based, and Kernel-based weights, and provides a robust fallback mechanism to automatically connect isolated areas (islands).
+This function constructs spatial weights matrices (row-standardized \eqn{W} or binary adjacency \eqn{B}) for Hierarchical Bayesian (HB) Beta Spatial modeling under Spatial Autoregressive (SAR) and Leroux Conditional Autoregressive (CAR) models. It supports various methods including Contiguity, Distance-based, and Kernel-based weights, and provides a robust fallback mechanism to automatically connect isolated areas (islands).
 }
 \details{
 The function supports the following spatial weight construction methods:
@@ -84,16 +84,47 @@ The function supports the following spatial weight construction methods:
   \item \strong{Distance-based:} K-Nearest Neighbors (KNN), Inverse Distance, and Exponential.
   \item \strong{Kernel-based:} Uniform, Gaussian, Triangular, Epanechnikov, and Quartic.
 }
-For distance and kernel methods, if \code{lonlat = TRUE}, spherical (great-circle) distances are calculated. For the kernel method specifically, distances are internally converted to kilometers.
+
+\strong{Important note on \code{style} for HB Beta Spatial models:}
+\itemize{
+  \item \code{style = "W"}: Returns a row-standardized weights matrix (rows sum to 1). This is the required format for HB Beta Spatial Autoregressive (SAR) models.
+  \item \code{style = "B"}: Returns a binary adjacency matrix (all positive weights are forcefully converted to 1). This is the required format for HB Beta Conditional Autoregressive (CAR) models, specifically the Leroux CAR model.
+}
+For continuous weighting methods (Inverse Distance, Exponential, Kernel), using \code{style = "B"} will ignore the calculated continuous weights and binarize the connections. Therefore, if you intend to use Leroux CAR models, Contiguity or KNN are naturally recommended. For SAR models, all methods (including continuous ones) are fully supported and will preserve their weights using \code{style = "W"}.
 }
 \examples{
+library(sf)
+
+# 1. Contiguity Method (Requires sf polygons)
+# Create a simple 3x3 polygon grid
+bbox <- st_bbox(c(xmin = 0, ymin = 0, xmax = 3, ymax = 3))
+grid <- st_make_grid(bbox, n = c(3, 3))
+grid_sf <- st_sf(id = 1:9, geometry = grid)
+
+# Build spatial weights with output = "all"
+W_obj <- build_w(
+  data = grid_sf,
+  method = "contiguity",
+  contiguity = "queen",
+  style = "W",
+  output = "all"
+)
+
+# Extract outputs from the list
+W_mat   <- W_obj$W      # Spatial weights matrix (for SAR/CAR)
+lw_obj  <- W_obj$listw  # listw object (for moran_test)
+W_diag  <- W_obj$diag   # Diagnostic info (isolated areas, etc.)
+head(W_mat)
+
+# Setup Coordinates for Distance & Kernel
 # Generate random Longitude and Latitude coordinates for 10 areas
 set.seed(123)
 lon <- runif(10, min = 100, max = 140)
 lat <- runif(10, min = -10, max = 10)
 coords <- cbind(lon, lat)
 
-# 1. Build KNN distance-based weights (k = 2) using spherical distance
+# 2. Distance Method (Using coordinates)
+# Build row-standardized KNN weights (style = "W") for SAR models
 W_knn <- build_w(
   data = NULL,
   coords = coords,
@@ -101,13 +132,13 @@ W_knn <- build_w(
   distance = "knn",
   k = 2,
   lonlat = TRUE,
+  style = "W",
   output = "matrix"
 )
-
-# View the first few rows of the matrix
 head(W_knn)
 
-# 2. Build Gaussian Kernel weights using 500 km bandwidth
+# 3. Kernel Method (Using coordinates)
+# Build binary adjacency Kernel weights (style = "B") for Leroux CAR models
 W_kernel <- build_w(
   data = NULL,
   coords = coords,
@@ -115,10 +146,9 @@ W_kernel <- build_w(
   kernel = "gaussian",
   bandwidth = 500,
   lonlat = TRUE,
+  style = "B",
   output = "matrix"
 )
-
-# View the first few rows of the matrix
 head(W_kernel)
 
 }

@@ -24,11 +24,11 @@ beta_lerouxcar(
 )
 }
 \arguments{
-\item{formula}{Formula that describes the fitted model.}
+\item{formula}{An object of class \code{\link[stats]{formula}} that describes the fitted model.}
 
-\item{proxmat}{\eqn{N \times N} spatial binary adjacency matrix with values \code{0} or \code{1} representing the neighborhood structure between areas. The diagonal elements must be \code{0}.}
+\item{proxmat}{An \eqn{N \times N} spatial binary adjacency matrix with values \code{0} or \code{1} representing the neighborhood structure between areas. The diagonal elements must be \code{0} and the matrix must be symmetric.}
 
-\item{data}{The data frame.}
+\item{data}{The data frame containing the variables named in \code{formula}.}
 
 \item{iter.update}{Number of updates performed during Gibbs sampling. Default is \code{3}.}
 
@@ -63,10 +63,11 @@ This function returns a list with the following objects:
   \item{randeff}{A dataframe containing the posterior mean estimates, posterior standard deviations, and 95\% credible intervals of the area-specific random effects \eqn{(v)}.}
   \item{refvar}{A dataframe containing the posterior mean estimates, posterior standard deviations, and 95\% credible intervals of the area-specific random effect variances \eqn{(a.var)}.}
   \item{coefficient}{A dataframe containing the posterior mean estimates, posterior standard deviations, 95\% credible intervals, Rhat convergence diagnostics, and Effective Sample Sizes (ESS) for the regression coefficients \eqn{(\beta)}, the spatial autoregressive parameter \eqn{(\rho)}, and the global precision parameter \eqn{(\phi)}.}
+  \item{fit}{The raw MCMC \code{coda} object (included only if \code{keep.fit = TRUE}).}
 }
 }
 \description{
-This function gives small area estimator under Spatial Leroux CAR Model. It is implemented to a variable of interest (y) that is assumed to follow a Beta Distribution. The range of data is \eqn{0 < y < 1}.
+This function estimates small area proportions using a Hierarchical Bayes (HB) method under a Spatial Leroux CAR Model with a Beta distribution without DEFF adjustments, by estimating the unknown precision parameter. It is designed for a variable of interest (\eqn{y}) that represents proportions, strictly bounded between 0 and 1 (\eqn{0 < y < 1}).
 }
 \examples{
 # Load dataset and proximity matrix

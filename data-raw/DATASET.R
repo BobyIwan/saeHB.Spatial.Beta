@@ -3,7 +3,6 @@
 set.seed(20260601L)
 
 # Setup dimensions and main parameters
-
 n_row <- 6L
 n_col <- 6L
 m     <- n_row * n_col
@@ -36,6 +35,9 @@ adjacency_mat <- spdep::nb2mat(
   zero.policy = TRUE
 )
 
+attributes(weight_mat) <- list(dim = dim(weight_mat))
+attributes(adjacency_mat) <- list(dim = dim(adjacency_mat))
+
 rownames(weight_mat) <- colnames(weight_mat) <- domain_names
 rownames(adjacency_mat) <- colnames(adjacency_mat) <- domain_names
 
@@ -46,7 +48,7 @@ x2 <- stats::rnorm(m)
 X <- cbind(1, x1, x2)
 
 # Generate design-effect information
-n_i <- round(stats::runif(m, 10, 50))
+n_i <- sample(10:50, m, replace = TRUE)
 deff <- round(stats::runif(m, 1, 2.5), 2)
 
 phi_deff <- (n_i / deff) - 1
@@ -58,6 +60,7 @@ u <- stats::rnorm(
   sd = sqrt(sigma_u2)
 )
 
+# (I - rho*W)^-1 * u
 v <- as.numeric(
   solve(diag(m) - rho_true * weight_mat) %*% u
 )
@@ -93,7 +96,6 @@ databeta <- data.frame(
 
 # Dataset with missing responses
 databeta_na <- databeta
-
 databeta_na$y[c(7, 13, 18, 21, 32)] <- NA
 
 # Export datasets

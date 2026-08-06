@@ -1,10 +1,10 @@
 #' @title Small Area Estimation using Hierarchical Bayesian Method under Spatial Beta-Leroux CAR Model
 #'
-#' @description This function gives small area estimator under Spatial Leroux CAR Model. It is implemented to a variable of interest (y) that is assumed to follow a Beta Distribution. The range of data is \eqn{0 < y < 1}.
+#' @description This function estimates small area proportions using a Hierarchical Bayes (HB) method under a Spatial Leroux CAR Model with a Beta distribution without DEFF adjustments, by estimating the unknown precision parameter. It is designed for a variable of interest (\eqn{y}) that represents proportions, strictly bounded between 0 and 1 (\eqn{0 < y < 1}).
 #'
-#' @param formula Formula that describes the fitted model.
-#' @param proxmat \eqn{N \times N} spatial binary adjacency matrix with values \code{0} or \code{1} representing the neighborhood structure between areas. The diagonal elements must be \code{0}.
-#' @param data The data frame.
+#' @param formula An object of class \code{\link[stats]{formula}} that describes the fitted model.
+#' @param proxmat An \eqn{N \times N} spatial binary adjacency matrix with values \code{0} or \code{1} representing the neighborhood structure between areas. The diagonal elements must be \code{0} and the matrix must be symmetric.
+#' @param data The data frame containing the variables named in \code{formula}.
 #' @param iter.update Number of updates performed during Gibbs sampling. Default is \code{3}.
 #' @param iter.mcmc Total number of MCMC iterations per chain. Default is \code{2000}.
 #' @param thin Thinning rate for MCMC sampling. Must be a positive integer. Default is \code{1}.
@@ -25,6 +25,7 @@
 #'   \item{randeff}{A dataframe containing the posterior mean estimates, posterior standard deviations, and 95\% credible intervals of the area-specific random effects \eqn{(v)}.}
 #'   \item{refvar}{A dataframe containing the posterior mean estimates, posterior standard deviations, and 95\% credible intervals of the area-specific random effect variances \eqn{(a.var)}.}
 #'   \item{coefficient}{A dataframe containing the posterior mean estimates, posterior standard deviations, 95\% credible intervals, Rhat convergence diagnostics, and Effective Sample Sizes (ESS) for the regression coefficients \eqn{(\beta)}, the spatial autoregressive parameter \eqn{(\rho)}, and the global precision parameter \eqn{(\phi)}.}
+#'   \item{fit}{The raw MCMC \code{coda} object (included only if \code{keep.fit = TRUE}).}
 #' }
 #'
 #' @examples
@@ -59,12 +60,14 @@
 #'
 #' @export beta_lerouxcar
 beta_lerouxcar <- function(formula, proxmat, data,
-                          iter.update = 3, iter.mcmc = 2000,
-                          thin = 1, burn.in = 1000, chains = 2, n.adapt = 1000,
-                          coef = NULL, var.coef = NULL, tau.v = 1,
-                          seed = 123, quiet = FALSE, plot = TRUE, keep.fit = FALSE) {
+                           iter.update = 3, iter.mcmc = 2000,
+                           thin = 1, burn.in = 1000, chains = 2, n.adapt = 1000,
+                           coef = NULL, var.coef = NULL, tau.v = 1,
+                           seed = 123, quiet = FALSE, plot = TRUE, keep.fit = FALSE) {
 
   result <- list(est = NA, randeff = NA, refvar = NA, coefficient = NA)
+
+  if (attr(terms(formula), "intercept") == 0) stop("Model must include an intercept.")
 
   formuladata <- stats::model.frame(formula, data, na.action = NULL)
   y <- formuladata[, 1, drop = FALSE]
@@ -79,16 +82,28 @@ beta_lerouxcar <- function(formula, proxmat, data,
     stop("Response variable must satisfy 0 < y < 1.")
   }
 
+  if (iter.mcmc <= burn.in) stop("iter.mcmc must exceed burn.in.")
+  if (thin < 1) stop("thin must be >= 1.")
+  if (chains < 1) stop("chains must be >= 1.")
   if (iter.update < 3) stop("The number of iteration updates must be at least 3.")
+  if (tau.v <= 0) stop("tau.v must be positive.")
+  if (seed <= 0) stop("seed must be positive.")
 
   xmat <- stats::model.matrix(formula, data = formuladata)
   X    <- as.matrix(xmat[, -1, drop = FALSE])
   P    <- ncol(X)
   nvar <- P + 1
 
+  if (!is.null(coef) && length(coef) != nvar) stop("coef must have length equal to the number of regression coefficients (including intercept).")
+  if (!is.null(var.coef) && length(var.coef) != nvar) stop("var.coef must have length equal to the number of regression coefficients.")
+  if (!is.null(var.coef) && any(var.coef <= 0)) stop("All values in var.coef must be positive.")
+
   W <- as.matrix(proxmat)
   if (any(is.na(W))) stop("Proximity matrix contains NA.")
   if (nrow(W) != N || ncol(W) != N) stop("Proximity matrix must be N x N.")
+  if (!all(W %in% c(0, 1))) stop("proxmat must be a binary adjacency matrix containing only 0 and 1.")
+  if (!isTRUE(all.equal(W, t(W)))) stop("proxmat must be symmetric.")
+  if (any(diag(W) != 0)) stop("Diagonal elements of proxmat must be zero.")
 
   D_mat <- diag(rowSums(W))
   R_mat <- D_mat - W
@@ -114,7 +129,6 @@ beta_lerouxcar <- function(formula, proxmat, data,
       shape2[i] <- (1 - mu[i]) * phi
 
       logit(mu[i]) <- beta[1] + inprod(beta[2:(P+1)], X[i, ]) + v[i]
-      a.var[i] <- sig_v[i, i]
     }
 
     for (i in 1:N) {
@@ -123,7 +137,6 @@ beta_lerouxcar <- function(formula, proxmat, data,
       }
     }
 
-    sig_v <- inverse(Q)
     v ~ dmnorm(O, Q)
 
     for (k in 1:(P+1)) {
@@ -146,7 +159,6 @@ beta_lerouxcar <- function(formula, proxmat, data,
 
     for (j in 1:N) {
       logit(mu[j]) <- beta[1] + inprod(beta[2:(P+1)], X[j, ]) + v[j]
-      a.var[j] <- sig_v[j, j]
     }
 
     for (i in 1:N) {
@@ -155,7 +167,6 @@ beta_lerouxcar <- function(formula, proxmat, data,
       }
     }
 
-    sig_v <- inverse(Q)
     v ~ dmnorm(O, Q)
 
     for (k in 1:(P+1)) {
@@ -168,7 +179,7 @@ beta_lerouxcar <- function(formula, proxmat, data,
     phi ~ dgamma(4, 0.2)
   }"
 
-  params <- c("mu", "a.var", "beta", "rho", "tau_v", "sigma2_v", "v", "phi")
+  params <- c("mu", "beta", "rho", "tau_v", "sigma2_v", "v", "phi")
 
   if (!any(is.na(y_all))) {
     for (i in 1:iter.update) {
@@ -223,7 +234,7 @@ beta_lerouxcar <- function(formula, proxmat, data,
     }
   }
 
-  #Output
+  # Output
   res_sum <- summary(samps1)
   ESS <- coda::effectiveSize(samps1)
   if (chains > 1) {
@@ -240,19 +251,40 @@ beta_lerouxcar <- function(formula, proxmat, data,
   randeff <- data.frame(res_sum$statistics[v_idx, 1:2], res_sum$quantiles[v_idx, c(1,5)])
   colnames(randeff) <- c("Estimate", "Est.Error", "l-95% CI", "u-95% CI")
 
-  a_var_idx <- grep("^a\\.var\\[", rownames(res_sum$statistics))
-  refvar <- data.frame(res_sum$statistics[a_var_idx, 1:2], res_sum$quantiles[a_var_idx, c(1,5)])
+  coda_mat <- as.matrix(samps1)
+  tau_v_samp <- coda_mat[, "tau_v"]
+  rho_samp   <- coda_mat[, "rho"]
+  n_iter_samp <- nrow(coda_mat)
+  a_var_mat <- matrix(NA, nrow = n_iter_samp, ncol = N)
+
+  for(i in 1:n_iter_samp) {
+    Q_iter <- tau_v_samp[i] * ((1 - rho_samp[i]) * I + rho_samp[i] * R_mat)
+    sig_v_iter <- solve(Q_iter)
+    a_var_mat[i, ] <- diag(sig_v_iter)
+  }
+
+  refvar <- data.frame(
+    Estimate   = colMeans(a_var_mat),
+    Est.Error  = apply(a_var_mat, 2, stats::sd),
+    `l-95% CI` = apply(a_var_mat, 2, stats::quantile, probs = 0.025),
+    `u-95% CI` = apply(a_var_mat, 2, stats::quantile, probs = 0.975),
+    check.names = FALSE
+  )
+  rownames(refvar) <- paste0("a.var[", 1:N, "]")
   colnames(refvar) <- c("Estimate", "Est.Error", "l-95% CI", "u-95% CI")
 
   b_idx   <- grep("^beta\\[", rownames(res_sum$statistics))
   rho_idx <- grep("^rho", rownames(res_sum$statistics))
   phi_idx <- grep("^phi", rownames(res_sum$statistics))
 
-  coef_stats <- rbind(res_sum$statistics[b_idx, 1:2], res_sum$statistics[rho_idx, 1:2], res_sum$statistics[phi_idx, 1:2])
-  coef_quant <- rbind(res_sum$quantiles[b_idx, c(1,5)], res_sum$quantiles[rho_idx, c(1,5)], res_sum$quantiles[phi_idx, c(1,5)])
+  coef_stats <- rbind(res_sum$statistics[b_idx, 1:2, drop = FALSE],
+                      res_sum$statistics[rho_idx, 1:2, drop = FALSE],
+                      res_sum$statistics[phi_idx, 1:2, drop = FALSE])
+  coef_quant <- rbind(res_sum$quantiles[b_idx, c(1,5), drop = FALSE],
+                      res_sum$quantiles[rho_idx, c(1,5), drop = FALSE],
+                      res_sum$quantiles[phi_idx, c(1,5), drop = FALSE])
   coef_rhat  <- c(Rhat_raw[b_idx], Rhat_raw[rho_idx], Rhat_raw[phi_idx])
   coef_ess   <- c(ESS[b_idx], ESS[rho_idx], ESS[phi_idx])
-
   coefficient <- data.frame(coef_stats, coef_quant, coef_rhat, coef_ess)
 
   b_varnames <- character(nvar)

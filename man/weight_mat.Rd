@@ -12,6 +12,6 @@ data(weight_mat)
 }
 \description{
 A row-standardized proximity matrix (\code{W}) generated from a 6x6 regular grid using Queen contiguity.
-This matrix is mathematically suitable for the Spatial Simultaneous Autoregressive (SAR) model and Moran's I test.
+This matrix is mathematically suitable for the Hierarchical Bayesian (HB) Spatial Beta-SAR model and Moran's I test.
 }
 \keyword{datasets}

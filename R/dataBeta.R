@@ -1,5 +1,5 @@
 #' @docType data
-#' @title Synthetic Data for Small Area Estimation using Spatial Beta Model
+#' @title Synthetic Data for Small Area Estimation using Hierarchical Bayesian Spatial Beta Models
 #'
 #' @description
 #' A synthetic dataset generated for testing and tutorial purposes of the \code{saeHB.Spatial.Beta} package.

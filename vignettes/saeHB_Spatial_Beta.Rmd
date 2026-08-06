@@ -23,10 +23,40 @@ The `saeHB.Spatial.Beta` package provides several functions to estimate small ar
 In this vignette, we will demonstrate a complete analytical workflow:
 
 1. Calculating Direct Estimates.
-2. Fitting a Non-Spatial Beta Model.
+2. Fitting the HB Beta Deff Non-Spatial Model.
 3. Checking spatial autocorrelation on the random effects using Moran's I.
-4. Fitting Spatial SAR and Leroux CAR Beta Models.
+4. Fitting the HB Beta Deff Spatial Models (SAR and Leroux CAR).
 5. Comparing the precision using Relative Standard Error (RSE).
+
+## Model Specifications
+
+Before diving into the workflow, let's briefly review the underlying models. Let $\hat{\theta}_i$ denote the direct estimator of the proportion for area $i$ ($i = 1, \dots, m$), and $\theta_i$ denote the true proportion parameter. Under the Hierarchical Bayesian framework, the Beta spatial model accommodating survey design effects is specified as follows:
+
+**1. Sampling Model:**
+$$\hat{\theta}_i \mid \theta_i \sim \text{Beta}(a_i, b_i)$$
+To accommodate the effective sample size from complex surveys, the shape parameters are strictly defined using the area's sample size ($n_i$) and survey design effect ($d_i$). Thus, the parameters are formulated as:
+$$a_i = \theta_i \left(\frac{n_i}{d_i} - 1\right) \quad \text{and} \quad b_i = (1 - \theta_i) \left(\frac{n_i}{d_i} - 1\right)$$
+With this specification, the expected value holds $E(\hat{\theta}_i \mid \theta_i) = \theta_i$. The sampling variance of the direct estimator can be expressed as $\psi_i = \left[ \frac{\theta_i (1-\theta_i)}{n_i} \right] d_i$, indicating that the sampling variance directly depends on the proportion parameter $\theta_i$ and the design effect $d_i$.
+
+**2. Linking Model:**
+The true proportion $\theta_i$ is modeled using a logit link function:
+$$\text{logit}(\theta_i) = \mathbf{x}_i^T \boldsymbol{\beta} + v_i$$
+Or equivalently in a conditional distribution form: $\text{logit}(\theta_i) \mid \boldsymbol{\beta}, \sigma_v^2 \sim N(\mathbf{x}_i^T \boldsymbol{\beta}, \sigma_v^2)$. Here, $\mathbf{x}_i^T$ represents the vector of auxiliary variables, $\boldsymbol{\beta}$ the regression coefficients, and $v_i$ the area-specific spatial random effect.
+
+**3. Spatial Random Effects:**
+To account for spatial dependency, the random effects vector $\mathbf{v} = (v_1, \dots, v_m)^T$ can be modeled using two different spatial structures:
+
+a.  **SAR Model:** The random effects follow a Simultaneous Autoregressive process, $\mathbf{v} \sim N_m(\mathbf{0}, \mathbf{G})$, with the covariance dispersion matrix defined as:
+
+    $$\mathbf{G} = \sigma_u^2 [(\mathbf{I} - \rho \mathbf{W})^T (\mathbf{I} - \rho \mathbf{W})]^{-1}$$
+
+    Where $\rho$ is the spatial autocorrelation parameter and $\mathbf{W}$ is a row-standardized spatial weights matrix.
+
+b.  **Leroux CAR Model:** The random effects follow a Conditional Autoregressive structure, $\mathbf{v} \sim N_m(\mathbf{0}, \mathbf{Q}(\rho)^{-1})$, with the precision matrix defined as:
+
+    $$\mathbf{Q}(\rho) = \frac{1}{\sigma_v^2} [(1 - \rho)\mathbf{I} + \rho(\mathbf{D} - \mathbf{W})]$$
+
+    Where $\mathbf{W}$ is the binary spatial adjacency matrix, $\mathbf{D}$ is a diagonal matrix containing the number of neighbors for each area, and $\rho \in [0,1]$ controls the spatial dependence.
 
 ## Step 1: Preparation and Data Loading
 
@@ -47,9 +77,11 @@ var_direct <- (databeta$y * (1 - databeta$y) / databeta$n_i) * databeta$deff
 databeta$rse_direct <- (sqrt(var_direct) / databeta$y) * 100
 ```
 
-## Step 2: Fitting the Non-Spatial Model
+## Step 2: Fitting the HB Beta Deff Non-Spatial Model
 
 We begin by fitting a baseline non-spatial model that accommodates the survey design effect. Here, we use the default Markov Chain Monte Carlo (MCMC) iterations.
+
+*Note: By default, the function runs MCMC with a predefined number of iterations and burn-in periods. For real-world applications with complex datasets, you may need to adjust parameters such as iter.mcmc, burn.in, and thin to ensure convergence.*
 
 ```{r ns-model, results='hide'}
 mod_ns_deff <- betadeff_nonspatial(
@@ -88,15 +120,14 @@ print(moran_result)
 
 A significant p-value confirms that the non-spatial model left unexplained spatial structure, heavily justifying the use of spatial models.
 
-## Step 4: Fitting the Spatial Models
+## Step 4: Fitting the HB Beta Deff Spatial Models
 
 We will now fit two spatial models: the Simultaneous Autoregressive (SAR) model and the Leroux Conditional Autoregressive (CAR) model. The SAR model requires a row-standardized weight matrix, while the Leroux CAR model requires a binary adjacency matrix.
 
 ```{r spatial-models, results='hide'}
-# Load the binary adjacency matrix for the Leroux CAR model
-data("adjacency_mat")
-
 # 1. Fit Spatial SAR Model
+# Load the spatial weight matrix for the SAR model
+data("weight_mat")
 mod_sar_deff <- betadeff_sar(
   formula = y ~ x1 + x2,
   deff = "deff",
@@ -104,8 +135,9 @@ mod_sar_deff <- betadeff_sar(
   proxmat = weight_mat,
   data = databeta
 )
-
 # 2. Fit Spatial Leroux CAR Model
+# Load the binary adjacency matrix for the Leroux CAR model
+data("adjacency_mat")
 mod_leroux_deff <- betadeff_lerouxcar(
   formula = y ~ x1 + x2,
   deff = "deff",
@@ -125,6 +157,38 @@ rse_leroux_deff <- (mod_leroux_deff$est$Est.Error / mod_leroux_deff$est$Estimate
 ## Step 5: Evaluation and Comparison
 
 We compare the performance of the Direct Estimator, the Non-Spatial Model, and the Spatial Models. A lower RSE indicates a more reliable and precise estimate. 
+
+First, let's look at the summary statistics of the RSEs provided by the SAE models compared to the direct estimates.
+
+```{r rse-summary, echo=FALSE}
+calc_stats <- function(x) {
+  c(
+    Minimum = min(x, na.rm = TRUE),
+    `First Quartile` = unname(quantile(x, 0.25, na.rm = TRUE)),
+    Median = median(x, na.rm = TRUE),
+    Mean = mean(x, na.rm = TRUE),
+    `Third Quartile` = unname(quantile(x, 0.75, na.rm = TRUE)),
+    Maximum = max(x, na.rm = TRUE)
+  )
+}
+
+rse_summary <- data.frame(
+  Direct = calc_stats(databeta$rse_direct),
+  `Non-Spatial` = calc_stats(rse_ns_deff),
+  `Spatial SAR` = calc_stats(rse_sar_deff),
+  `Spatial Leroux` = calc_stats(rse_leroux_deff),
+  check.names = FALSE
+)
+
+knitr::kable(
+  rse_summary, 
+  digits = 2, 
+  align = "c",
+  caption = "Descriptive Statistics of Relative Standard Error (RSE) in %"
+)
+```
+
+We can also visualize this comparison across all areas using a line and point plot to observe the fluctuation of RSE values.
 
 ```{r comparison, fig.width=8, fig.height=5}
 # Combine RSEs into a single data frame for plotting

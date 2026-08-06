@@ -1,5 +1,5 @@
 #' @docType data
-#' @title Synthetic Data with Missing Values for Small Area Estimation
+#' @title Synthetic Data with Missing Values for Small Area Estimation using Hierarchical Bayesian Spatial Beta Models
 #'
 #' @description
 #' A synthetic dataset identical to \code{\link{databeta}}, but contains 5 missing values (NA) in the
