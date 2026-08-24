@@ -143,7 +143,7 @@ W_kernel <- build_w(
   data = NULL,
   coords = coords,
   method = "kernel",
-  kernel = "gaussian",
+  kernel = "epanechnikov",
   bandwidth = 500,
   lonlat = TRUE,
   style = "B",

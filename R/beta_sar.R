@@ -5,15 +5,15 @@
 #' @param formula An object of class \code{\link[stats]{formula}} that describes the fitted model.
 #' @param proxmat An \eqn{N \times N} row-standardized spatial weights matrix (\code{style = "W"}) representing the spatial proximity between areas. The rows must sum to \code{1} and diagonal elements must be \code{0}.
 #' @param data The data frame containing the variables named in \code{formula}.
-#' @param iter.update Number of updates performed during Gibbs sampling. Default is \code{3}.
+#' @param iter.update Number of iterative model updates used to refine the prior distributions for the regression coefficients and random effect precision. Default is \code{3}.
 #' @param iter.mcmc Total number of MCMC iterations per chain. Default is \code{2000}.
 #' @param thin Thinning rate for MCMC sampling. Must be a positive integer. Default is \code{1}.
 #' @param burn.in Number of burn-in iterations discarded from each MCMC chain. Default is \code{1000}.
 #' @param chains Number of parallel MCMC chains. Default is \code{2}.
 #' @param n.adapt Number of iterations used for the adaptation phase in JAGS. Default is \code{1000}.
-#' @param coef Optional vector containing the mean of the prior distribution of the regression model coefficients.
+#' @param coef Optional vector specifying the prior means of the regression coefficients, including the intercept.
 #' @param var.coef Optional vector containing the variances of the prior distribution of the regression model coefficients.
-#' @param tau.u Initial value or shape for the random effect precision. Default is \code{1}.
+#' @param tau.u Initial value for the random effect precision \eqn{(\tau_u)}. Default is \code{1}.
 #' @param seed An integer seed for the random number generator to ensure reproducibility. Default is \code{123}.
 #' @param quiet Logical; if \code{TRUE}, suppresses the JAGS terminal output. Default is \code{FALSE}.
 #' @param plot Logical; if \code{TRUE}, generates MCMC diagnostic trace, autocorrelation, and density plots. Default is \code{TRUE}.
@@ -104,9 +104,17 @@ beta_sar <- function(formula, proxmat, data,
   if (any(abs(rowSums(W) - 1) > 1e-8)) stop("Each row of proxmat must sum to 1 (row-standardized).")
   if (any(diag(W) != 0)) stop("Diagonal elements of proxmat must be zero.")
 
-  eig <- eigen(W)$values
-  rho.min <- 1 / min(Re(eig))
-  rho.max <- 1 / max(Re(eig))
+  eig <- eigen(W, only.values = TRUE)$values
+  eig_real <- Re(eig[abs(Im(eig)) < 1e-10])
+  eig_pos <- eig_real[eig_real > 0]
+  eig_neg <- eig_real[eig_real < 0]
+
+  if (length(eig_pos) == 0 || length(eig_neg) == 0) {
+    stop("Unable to determine a finite admissible interval for rho based on spatial weights.")
+  }
+
+  rho.min <- 1 / min(eig_neg)
+  rho.max <- 1 / max(eig_pos)
 
   mu_beta  <- if (!is.null(coef)) coef else rep(0, nvar)
   tau_beta <- if (!is.null(var.coef)) 1/var.coef else rep(1, nvar)

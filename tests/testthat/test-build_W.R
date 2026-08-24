@@ -84,22 +84,22 @@ test_that("Unit Testing for build_w warnings and errors (Edge Cases)", {
   expect_error(build_w(data = NULL, coords = c(1,2), method = "distance"), "coords must be numeric with 2 columns")
   expect_error(build_w(data = invalid_data, method = "contiguity"))
   expect_error(build_w(data = invalid_data, method = "distance"))
-  expect_error(build_w(data = mock_na, coords = mock_na, method = "distance"), "Some areas have empty geometries")
+  expect_error(build_w(data = mock_na, coords = mock_na, method = "distance"), "Coordinates must be finite")
 
   # Error: Less than 2 areas
   expect_error(build_w(data = mock_coords[1,,drop=FALSE], coords = mock_coords[1,,drop=FALSE], method = "distance"), "Need at least 2 areas")
 
-  # Error: Contiguity fallback without dmax (DIBUNGKAM DI SINI)
+  # Error: Contiguity fallback without dmax
   expect_error(suppressWarnings(build_w(data = mock_iso, method = "contiguity", fallback = "distance", fallback_dmax = NULL)), "fallback_dmax must be provided")
 
   # Error: Distance invalid parameters
-  expect_error(suppressWarnings(build_w(data = mock_coords, coords = mock_coords, method = "distance", distance = "knn", k = 0)), "k must be >= 1")
-  expect_error(build_w(data = mock_coords, coords = mock_coords, method = "distance", distance = "inverse_distance", power = -1), "power must be > 0")
-  expect_error(build_w(data = mock_coords, coords = mock_coords, method = "distance", distance = "exponential", alpha = 0), "alpha must be > 0")
+  expect_error(suppressWarnings(build_w(data = mock_coords, coords = mock_coords, method = "distance", distance = "knn", k = 0)), "must be a single positive integer")
+  expect_error(build_w(data = mock_coords, coords = mock_coords, method = "distance", distance = "inverse_distance", power = -1), "must be a single positive numeric value")
+  expect_error(build_w(data = mock_coords, coords = mock_coords, method = "distance", distance = "exponential", alpha = 0), "must be a single positive numeric value")
 
   # Error: Kernel invalid parameters
-  expect_error(build_w(data = mock_coords, coords = mock_coords, method = "kernel", bandwidth = NULL), "bandwidth must be provided")
-  expect_error(build_w(data = mock_coords, coords = mock_coords, method = "kernel", kernel = "gaussian", bandwidth = -10), "bandwidth must be provided and > 0")
+  expect_error(build_w(data = mock_coords, coords = mock_coords, method = "kernel", bandwidth = NULL), "must be a single positive numeric value")
+  expect_error(build_w(data = mock_coords, coords = mock_coords, method = "kernel", kernel = "gaussian", bandwidth = -10), "must be a single positive numeric value")
 
   # Error: Zero policy = FALSE on isolated areas
   expect_error(suppressWarnings(build_w(data = mock_iso, method = "contiguity", fallback = "none", zero.policy = FALSE)))

@@ -46,11 +46,15 @@ Or equivalently in a conditional distribution form: $\text{logit}(\theta_i) \mid
 **3. Spatial Random Effects:**
 To account for spatial dependency, the random effects vector $\mathbf{v} = (v_1, \dots, v_m)^T$ can be modeled using two different spatial structures:
 
-a.  **SAR Model:** The random effects follow a Simultaneous Autoregressive process, $\mathbf{v} \sim N_m(\mathbf{0}, \mathbf{G})$, with the covariance dispersion matrix defined as:
+a.  **SAR Model:** The random effects follow a Simultaneous Autoregressive process, mathematically defined as:
+
+    $$\mathbf{v} = \rho \mathbf{W} \mathbf{v} + \mathbf{u}, \quad \mathbf{u} \sim N_m(\mathbf{0}, \sigma_u^2 \mathbf{I})$$
+
+    Assuming the matrix $(\mathbf{I} - \rho \mathbf{W})$ is non-singular, it can be rewritten explicitly as $\mathbf{v} = (\mathbf{I} - \rho \mathbf{W})^{-1} \mathbf{u}$, which implies $\mathbf{v} \sim N_m(\mathbf{0}, \mathbf{G})$ with the covariance dispersion matrix defined as:
 
     $$\mathbf{G} = \sigma_u^2 [(\mathbf{I} - \rho \mathbf{W})^T (\mathbf{I} - \rho \mathbf{W})]^{-1}$$
 
-    Where $\rho$ is the spatial autocorrelation parameter and $\mathbf{W}$ is a row-standardized spatial weights matrix.
+    Where $\rho$ is the spatial autocorrelation parameter, $\mathbf{W}$ is a row-standardized spatial weights matrix, and $\mathbf{u}$ is the independent random error vector.
 
 b.  **Leroux CAR Model:** The random effects follow a Conditional Autoregressive structure, $\mathbf{v} \sim N_m(\mathbf{0}, \mathbf{Q}(\rho)^{-1})$, with the precision matrix defined as:
 

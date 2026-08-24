@@ -23,13 +23,7 @@
 #' @param zero.policy Logical; if \code{TRUE}, allows areas with no neighbors (isolates) to be included in the calculation. Default is \code{TRUE}.
 #' @param na.rm Logical; if \code{TRUE}, missing values in \code{x} are removed, and the corresponding rows/columns in the spatial weights are automatically subsetted. Default is \code{TRUE}.
 #'
-#' @return An object of class \code{htest} (if \code{mc = FALSE}) or \code{mc.sim} (if \code{mc = TRUE}). The returned components depend on the selected test, following the corresponding \code{spdep} implementation. Common components include:
-#' \itemize{
-#'   \item \code{statistic}: The value of the standard deviate of Moran's I.
-#'   \item \code{p.value}: The p-value of the test.
-#'   \item \code{method}: A character string indicating the type of test performed.
-#'   \item \code{data.name}: A character string giving the name(s) of the data.
-#' }
+#' @return An object returned by \code{\link[spdep]{moran.test}} when \code{mc = FALSE}, or by \code{\link[spdep]{moran.mc}} when \code{mc = TRUE}. The returned components vary depending on the selected test.
 #'
 #' @examples
 #' library(sf)
@@ -76,6 +70,13 @@ moran_test <- function(x,
 
   if (!is.numeric(x)) stop("Argument 'x' must be a numeric vector.")
   if (!inherits(listw, "listw")) stop("Argument 'listw' must be an object of class 'listw'.")
+
+  # Validation: nsim must be a positive integer if mc = TRUE
+  if (mc) {
+    if (length(nsim) != 1 || !is.numeric(nsim) || is.na(nsim) || nsim < 1 || nsim %% 1 != 0) {
+      stop("Argument 'nsim' must be a single positive integer when 'mc = TRUE'.")
+    }
+  }
 
   # Validation: Check if length of x matches the spatial weights dimensions
   if (length(x) != length(listw$neighbours)) {

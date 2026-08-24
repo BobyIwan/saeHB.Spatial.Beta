@@ -95,4 +95,15 @@ test_that("Unit Testing for beta_sar: Error Handling", {
   expect_error(beta_sar(y ~ x1 + x2, proxmat = weight_mat, data = databeta, seed = 0, plot = FALSE), "seed must be positive")
   expect_error(beta_sar(y ~ x1 + x2, proxmat = weight_mat, data = databeta, coef = c(1, 2), plot = FALSE), "coef must have length equal to")
   expect_error(beta_sar(y ~ x1 + x2, proxmat = weight_mat, data = databeta, var.coef = c(1, 1, -1), plot = FALSE), "All values in var.coef must be positive")
+
+  # Case 9: Eigenvalues validation for rho interval
+  W_bad_eig <- matrix(c(0, 1, 0,
+                        0, 0, 1,
+                        1, 0, 0), nrow = 3, byrow = TRUE)
+  databeta_sub <- databeta[1:3, ] # Subset data agar N-nya cocok (3 area)
+
+  expect_error(
+    beta_sar(y ~ x1 + x2, proxmat = W_bad_eig, data = databeta_sub, plot = FALSE),
+    "Unable to determine a finite admissible interval for rho"
+  )
 })

@@ -28,7 +28,6 @@ test_that("Unit Testing for betadeff_sar: Execution and Output Format", {
 
       iter.mcmc = 100,
       burn.in = 50,
-      n.adapt = 500,
 
       quiet = TRUE,
       plot = FALSE
@@ -115,4 +114,15 @@ test_that("Unit Testing for betadeff_sar: Error Handling", {
   expect_error(betadeff_sar(y ~ x1 + x2, "deff", "n_i", weight_mat, databeta, seed = 0, plot = FALSE), "seed must be positive")
   expect_error(betadeff_sar(y ~ x1 + x2, "deff", "n_i", weight_mat, databeta, coef = c(1, 2), plot = FALSE), "coef must have length equal to")
   expect_error(betadeff_sar(y ~ x1 + x2, "deff", "n_i", weight_mat, databeta, var.coef = c(1, 1, -1), plot = FALSE), "All values in var.coef must be positive")
+
+  # Case 12: Eigenvalues validation for rho interval
+  W_bad_eig <- matrix(c(0, 1, 0,
+                        0, 0, 1,
+                        1, 0, 0), nrow = 3, byrow = TRUE)
+  databeta_sub <- databeta[1:3, ] # Subset data agar N-nya cocok (3 area)
+
+  expect_error(
+    betadeff_sar(y ~ x1 + x2, "deff", "n_i", W_bad_eig, databeta_sub, plot = FALSE),
+    "Unable to determine a finite admissible interval for rho"
+  )
 })

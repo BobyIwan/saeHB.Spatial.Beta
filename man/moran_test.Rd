@@ -30,13 +30,7 @@ moran_test(
 \item{na.rm}{Logical; if \code{TRUE}, missing values in \code{x} are removed, and the corresponding rows/columns in the spatial weights are automatically subsetted. Default is \code{TRUE}.}
 }
 \value{
-An object of class \code{htest} (if \code{mc = FALSE}) or \code{mc.sim} (if \code{mc = TRUE}). The returned components depend on the selected test, following the corresponding \code{spdep} implementation. Common components include:
-\itemize{
-  \item \code{statistic}: The value of the standard deviate of Moran's I.
-  \item \code{p.value}: The p-value of the test.
-  \item \code{method}: A character string indicating the type of test performed.
-  \item \code{data.name}: A character string giving the name(s) of the data.
-}
+An object returned by \code{\link[spdep]{moran.test}} when \code{mc = FALSE}, or by \code{\link[spdep]{moran.mc}} when \code{mc = TRUE}. The returned components vary depending on the selected test.
 }
 \description{
 This function performs Moran's I test for detecting global spatial autocorrelation. It provides a convenient wrapper around \code{spdep::moran.test()} and \code{spdep::moran.mc()}, with automatic handling of missing values (NA) by seamlessly subsetting both the response vector and the spatial weights object simultaneously.

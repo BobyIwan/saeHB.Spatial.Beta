@@ -6,15 +6,15 @@
 #' @param deff A character string specifying the name of the design effect (DEFF) variable in the data frame.
 #' @param n_i A character string specifying the name of the sample size variable in the data frame.
 #' @param data The data frame containing the variables named in \code{formula}, \code{deff}, and \code{n_i}.
-#' @param iter.update Number of updates performed during Gibbs sampling. Default is \code{3}.
+#' @param iter.update Number of iterative model updates used to refine the prior distributions for the regression coefficients and random effect precision. Default is \code{3}.
 #' @param iter.mcmc Total number of MCMC iterations per chain. Default is \code{2000}.
 #' @param thin Thinning rate for MCMC sampling. Must be a positive integer. Default is \code{1}.
 #' @param burn.in Number of burn-in iterations discarded from each MCMC chain. Default is \code{1000}.
 #' @param chains Number of parallel MCMC chains. Default is \code{2}.
 #' @param n.adapt Number of iterations used for the adaptation phase in JAGS. Default is \code{1000}.
-#' @param coef Optional vector containing the mean of the prior distribution of the regression model coefficients.
+#' @param coef Optional vector specifying the prior means of the regression coefficients, including the intercept.
 #' @param var.coef Optional vector containing the variances of the prior distribution of the regression model coefficients.
-#' @param tau.v Initial value or shape for the random effect precision. Default is \code{1}.
+#' @param tau.v Initial value for the random effect precision. Default is \code{1}.
 #' @param seed An integer seed for the random number generator to ensure reproducibility. Default is \code{123}.
 #' @param quiet Logical; if \code{TRUE}, suppresses the JAGS terminal output. Default is \code{FALSE}.
 #' @param plot Logical; if \code{TRUE}, generates MCMC diagnostic trace, autocorrelation, and density plots. Default is \code{TRUE}.

@@ -96,7 +96,7 @@
 #'   data = NULL,
 #'   coords = coords,
 #'   method = "kernel",
-#'   kernel = "gaussian",
+#'   kernel = "epanechnikov",
 #'   bandwidth = 500,
 #'   lonlat = TRUE,
 #'   style = "B",
@@ -139,6 +139,11 @@ build_w <- function(
   style      <- match.arg(style)
   output     <- match.arg(output)
 
+  if (!is.logical(lonlat) || length(lonlat) != 1 || is.na(lonlat)) stop("'lonlat' must be TRUE or FALSE.")
+  if (!is.logical(zero.policy) || length(zero.policy) != 1 || is.na(zero.policy)) stop("'zero.policy' must be TRUE or FALSE.")
+  if (!is.numeric(k) || length(k) != 1 || !is.finite(k) || k < 1 || k != floor(k)) stop("'k' must be a single positive integer.")
+  if (!is.numeric(fallback_k) || length(fallback_k) != 1 || !is.finite(fallback_k) || fallback_k < 1 || fallback_k != floor(fallback_k)) stop("'fallback_k' must be a single positive integer.")
+
   get_coords <- function(data, coords) {
     if (!is.null(coords)) {
       cm <- as.matrix(coords)
@@ -146,7 +151,7 @@ build_w <- function(
       return(cm)
     }
     if (inherits(data, "sf")) {
-      suppressWarnings(cc <- sf::st_coordinates(sf::st_centroid(sf::st_geometry(data))))
+      cc <- sf::st_coordinates(sf::st_centroid(sf::st_geometry(data)))
       if (ncol(cc) < 2) stop("Failed to extract centroid coordinates from sf.")
       return(as.matrix(cc[, 1:2, drop = FALSE]))
     }
@@ -155,18 +160,25 @@ build_w <- function(
 
   is_sf <- inherits(data, "sf")
   if (method == "contiguity" && !is_sf) {
-    stop("method='contiguity' requires `data` as sf polygons.")
+    stop("method='contiguity' requires `data` as an sf polygon object.")
   }
 
   coords_mat <- get_coords(data, coords)
 
-  if (any(is.na(coords_mat))) {
-    stop("Some areas have empty geometries or NA coordinates (Ghost Regions). Please clean your spatial data first.")
+  # Check dimensions match if both sf and coords are provided
+  if (!is.null(coords) && is_sf && nrow(coords_mat) != nrow(data)) {
+    stop("Number of rows in 'coords' must match the number of areas in 'data'.")
+  }
+
+  # Strict coordinate check for Inf, -Inf, NaN, NA
+  if (any(!is.finite(coords_mat))) {
+    stop("Coordinates must be finite and cannot contain NA, NaN, or Inf. Please clean your spatial data.")
   }
 
   n <- nrow(coords_mat)
   if (n < 2) stop("Need at least 2 areas to build W.")
 
+  # Cap k values to max possible neighbors
   k <- min(k, n - 1)
   fallback_k <- min(fallback_k, n - 1)
 
@@ -224,8 +236,10 @@ build_w <- function(
 
   if (method == "distance") {
 
+    if (distance == "inverse_distance" && (!is.numeric(power) || length(power) != 1 || !is.finite(power) || power <= 0)) stop("'power' must be a single positive numeric value.")
+    if (distance == "exponential" && (!is.numeric(alpha) || length(alpha) != 1 || !is.finite(alpha) || alpha <= 0)) stop("'alpha' must be a single positive numeric value.")
+
     if (distance == "knn") {
-      if (!is.numeric(k) || k < 1) stop("k must be >= 1 for knn.")
       knn <- spdep::knearneigh(coords_mat, k = k, longlat = lonlat)
       nb  <- spdep::knn2nb(knn)
 
@@ -238,8 +252,6 @@ build_w <- function(
     }
 
     if (distance %in% c("inverse_distance", "exponential")) {
-      if (distance == "inverse_distance" && (!is.numeric(power) || power <= 0)) stop("power must be > 0.")
-      if (distance == "exponential" && (!is.numeric(alpha) || alpha <= 0)) stop("alpha must be > 0.")
 
       if (!is.null(dmax)) {
         nb <- spdep::dnearneigh(coords_mat, 0, dmax, longlat = lonlat)
@@ -247,7 +259,6 @@ build_w <- function(
           stop("Some areas have no neighbors with current dmax. Increase dmax.")
         }
       } else {
-        if (!is.numeric(k) || k < 1) stop("k must be >= 1 when dmax is NULL.")
         knn <- spdep::knearneigh(coords_mat, k = k, longlat = lonlat)
         nb  <- spdep::knn2nb(knn)
       }
@@ -281,8 +292,12 @@ build_w <- function(
   }
 
   if (method == "kernel") {
-    if (is.null(bandwidth) || !is.numeric(bandwidth) || bandwidth <= 0) {
-      stop("bandwidth must be provided and > 0 for kernel weights.")
+
+    if (is.null(bandwidth) || !is.numeric(bandwidth) || length(bandwidth) != 1 || !is.finite(bandwidth) || bandwidth <= 0) {
+      stop("'bandwidth' must be a single positive numeric value when method = 'kernel'.")
+    }
+    if (kernel == "gaussian" && style == "B") {
+      warning("Gaussian kernel assigns positive weights to all non-identical areas. Using style = 'B' will produce a fully connected binary adjacency matrix.")
     }
 
     pts <- sf::st_as_sf(as.data.frame(coords_mat), coords = 1:2,

@@ -73,4 +73,15 @@ test_that("moran_test stops with invalid inputs", {
     moran_test(x = x_short, listw = W_listw, na.rm = TRUE),
     "Not enough valid data points"
   )
+
+  # Error if nsim is invalid when mc = TRUE
+  expect_error(
+    moran_test(x = databeta$y, listw = W_listw, mc = TRUE, nsim = 0),
+    "must be a single positive integer"
+  )
+  expect_error(
+    moran_test(x = databeta$y, listw = W_listw, mc = TRUE, nsim = 99.5),
+    "must be a single positive integer"
+  )
+
 })

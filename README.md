@@ -70,8 +70,7 @@ You can install the development version of saeHB.Spatial.Beta from
 devtools::install_github("BobyIwan/saeHB.Spatial.Beta")
 ```
 
-Or, to include the vignette (a detailed tutorial on how to use the
-package), use the following command:
+Or, to include the vignette, use the following command:
 
 ``` r
 devtools::install_github("BobyIwan/saeHB.Spatial.Beta", build_vignettes = TRUE)
