@@ -13,10 +13,12 @@ test_that("Unit Testing for betadeff_lerouxcar: Execution and Output Format", {
 
       iter.mcmc = 100,
       burn.in = 50,
+      chains = 2,
       quiet = TRUE
     )
     dev.off()
     expect_true(is.list(res_sampled))
+    expect_equal(rownames(res_sampled$coefficient), c("beta[0]", "beta[1]", "beta[2]", "rho"))
 
     # Case 2: Data with non-sampled areas (NA) executes successfully
     res_nonsampled <- betadeff_lerouxcar(
@@ -28,11 +30,13 @@ test_that("Unit Testing for betadeff_lerouxcar: Execution and Output Format", {
 
       iter.mcmc = 100,
       burn.in = 50,
+      chains = 2,
 
       quiet = TRUE,
       plot = FALSE
     )
     expect_true(is.list(res_nonsampled))
+    expect_equal(rownames(res_nonsampled$coefficient), c("beta[0]", "beta[1]", "beta[2]", "rho"))
   })
 })
 
@@ -117,4 +121,20 @@ test_that("Unit Testing for betadeff_lerouxcar: Error Handling", {
   expect_error(betadeff_lerouxcar(y ~ x1 + x2, "deff", "n_i", adjacency_mat, databeta, seed = 0, plot = FALSE), "seed must be positive")
   expect_error(betadeff_lerouxcar(y ~ x1 + x2, "deff", "n_i", adjacency_mat, databeta, coef = c(1, 2), plot = FALSE), "coef must have length equal to")
   expect_error(betadeff_lerouxcar(y ~ x1 + x2, "deff", "n_i", adjacency_mat, databeta, var.coef = c(1, 1, -1), plot = FALSE), "All values in var.coef must be positive")
+
+  # Case 12: n.sims validation errors
+  expect_error(
+    betadeff_lerouxcar(y ~ x1 + x2, "deff", "n_i", adjacency_mat, databeta, n.sims = 0, plot = FALSE),
+    "n.sims must be >= 1"
+  )
+  expect_error(
+    betadeff_lerouxcar(y ~ x1 + x2, "deff", "n_i", adjacency_mat, databeta, chains = 2, n.sims = 3, plot = FALSE),
+    "n.sims cannot exceed the number of chains"
+  )
+
+  # Case 13: Effective sample size validation error for runjags
+  expect_error(
+    betadeff_lerouxcar(y ~ x1 + x2, "deff", "n_i", adjacency_mat, databeta, iter.mcmc = 100, burn.in = 99, thin = 2, plot = FALSE),
+    "The effective number of samples"
+  )
 })

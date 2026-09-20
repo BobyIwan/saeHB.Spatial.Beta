@@ -3,19 +3,18 @@
 
 # saeHB.Spatial.Beta
 
-We designed this package to provide several functions for area-level
-small area estimation under Spatial Simultaneous Autoregressive (SAR)
-and Leroux Conditional Autoregressive (CAR) models, accommodating survey
-design effect (DEFF) adjustments, using hierarchical Bayesian (HB)
-method with Beta distribution for variables of interest. Some datasets
-simulated by a data generation are also provided. The rjags package is
-employed to obtain parameter estimates using Markov Chain Monte Carlo
-(MCMC) algorithms. Model-based estimators involve the HB estimators
-which include the mean estimation, the estimated model coefficients, the
-random effect, and the random effect variance. For the reference, see
-Rao and Molina (2015), Liu (2009), Liu et al. (2014), Kubacki and
-Jedrzejczak (2016), Leroux et al. (2000), Chung and Datta (2020),
-Anselin (1988), and Anselin and Morrison (2019).
+The `saeHB.Spatial.Beta` package provides several functions to estimate
+small area proportions using the Hierarchical Bayesian (HB) method.
+Model-based estimators are designed for variables of interest that
+follow a Beta distribution (proportions bounded between 0 and 1). The
+package supports both non-spatial and spatial models based on
+Simultaneous Autoregressive (SAR) and Leroux Conditional Autoregressive
+(CAR) structures for area-level random effects, with optional survey
+design effect (DEFF) adjustments for sampling variances. In addition, it
+provides utility functions for constructing spatial weights matrices and
+performing spatial autocorrelation diagnostics. The `runjags` package is
+used to obtain posterior estimates via Markov Chain Monte Carlo (MCMC)
+with parallel computing capabilities.
 
 ## Author
 
@@ -57,10 +56,10 @@ Boby Iwan <bobyiwanboby2122@gmail.com>
 
 ## Installation
 
-**System Requirement:** Since this package relies on `rjags` for MCMC
-computations, you must first install the [JAGS (Just Another Gibbs
-Sampler)](https://mcmc-jags.sourceforge.io/) software on your computer
-before installing this package.
+**System Requirement:** Since this package relies on `runjags` for
+parallel MCMC computations, you must first install the [JAGS (Just
+Another Gibbs Sampler)](https://mcmc-jags.sourceforge.io/) software on
+your computer before installing this package.
 
 You can install the development version of saeHB.Spatial.Beta from
 [GitHub](https://github.com/BobyIwan/saeHB.Spatial.Beta) with:
@@ -98,73 +97,73 @@ model_sar_deff <- betadeff_sar(
 )
 ```
 
-<img src="man/figures/README-example-1.png" alt="" width="100%" /><img src="man/figures/README-example-2.png" alt="" width="100%" /><img src="man/figures/README-example-3.png" alt="" width="100%" />
+<img src="man/figures/README-example-1.png" alt="" width="100%" /><img src="man/figures/README-example-2.png" alt="" width="100%" /><img src="man/figures/README-example-3.png" alt="" width="100%" /><img src="man/figures/README-example-4.png" alt="" width="100%" /><img src="man/figures/README-example-5.png" alt="" width="100%" />
 
 Extract the mean estimation for the areas:
 
 ``` r
 head(model_sar_deff$est)
 #>        Estimate   Est.Error  l-95% CI  u-95% CI
-#> mu[1] 0.6904202 0.122276168 0.4491634 0.9066046
-#> mu[2] 0.7358053 0.075425351 0.5852298 0.8758472
-#> mu[3] 0.8315318 0.048186333 0.7266684 0.9207047
-#> mu[4] 0.9098379 0.052079819 0.7889493 0.9734647
-#> mu[5] 0.9147718 0.034302527 0.8348752 0.9695360
-#> mu[6] 0.9933859 0.003904432 0.9845815 0.9986099
+#> mu[1] 0.7017291 0.096885564 0.4983159 0.8666782
+#> mu[2] 0.7459065 0.080078825 0.5704012 0.8755842
+#> mu[3] 0.8343082 0.061829998 0.6859204 0.9385485
+#> mu[4] 0.9028458 0.044167418 0.7996379 0.9702999
+#> mu[5] 0.9178821 0.055304048 0.7613738 0.9810034
+#> mu[6] 0.9945548 0.003749456 0.9854869 0.9990520
 ```
 
 Extract the estimated model coefficients:
 
 ``` r
 model_sar_deff$coefficient
-#>          Estimate  Est.Error  l-95% CI u-95% CI     Rhat       ESS
-#> beta[0] 2.1552971 0.18871070 1.7942579 2.469571 2.351008  63.83022
-#> beta[1] 0.9846968 0.16170654 0.6613031 1.298958 1.822902  43.60133
-#> beta[2] 0.9015832 0.09514377 0.7211005 1.099114 1.044164  51.33361
-#> rho     0.7882047 0.10719963 0.5517969 0.959489 1.215377 536.84195
+#>          Estimate  Est.Error  l-95% CI  u-95% CI     Rhat       ESS
+#> beta[0] 2.3799473 0.29529197 1.7512250 2.9026095 2.452531  98.92171
+#> beta[1] 0.9182145 0.13552309 0.6660229 1.1913135 1.046490 275.96467
+#> beta[2] 0.7818077 0.09901004 0.5895655 0.9717608 1.101992 183.04518
+#> rho     0.7645963 0.11777634 0.4820338 0.9486901 1.098250 575.54412
 ```
 
 Extract the random effect for the areas:
 
 ``` r
 model_sar_deff$randeff
-#>          Estimate Est.Error    l-95% CI    u-95% CI
-#> v[1]  -1.55295590 0.5415769 -2.46067324 -0.30183277
-#> v[2]  -0.40668766 0.4868080 -1.27137753  0.68989860
-#> v[3]  -0.56451854 0.3761887 -1.29802589  0.20921295
-#> v[4]   1.25377103 0.6708254  0.02248222  2.62497249
-#> v[5]   1.57656883 0.4135432  0.83389540  2.37519730
-#> v[6]   1.07018762 0.6214890  0.08702998  2.30824241
-#> v[7]  -2.25189587 0.3772757 -2.96683152 -1.43691527
-#> v[8]  -2.22335204 0.4368014 -2.92910385 -1.40066119
-#> v[9]  -0.34010596 0.4563517 -1.26326303  0.45044624
-#> v[10]  0.64987774 0.6773952 -0.64682674  2.08807649
-#> v[11]  2.04639123 0.6617645  0.97155382  3.78632657
-#> v[12]  1.09010398 0.6111019 -0.11469939  2.24601657
-#> v[13] -1.05056022 0.6390102 -2.11056767  0.54101461
-#> v[14] -0.97210465 0.5683333 -2.50486357 -0.06298717
-#> v[15] -0.29789316 0.6093787 -1.30150329  0.92165587
-#> v[16]  1.03759858 0.5797622  0.17884612  2.48395933
-#> v[17]  1.63925819 0.5189512  0.78898753  2.78170881
-#> v[18]  0.69487104 0.9392959 -1.42223674  2.17441560
-#> v[19] -0.84008891 0.5460784 -1.92505921  0.17527037
-#> v[20] -0.26573043 0.5216119 -1.40333441  0.60022711
-#> v[21]  0.51006130 0.5192477 -0.50860557  1.41488293
-#> v[22]  0.05989928 0.2736546 -0.48650270  0.61845032
-#> v[23]  1.45811532 0.6405493  0.54155041  2.95391925
-#> v[24]  1.41442004 0.7454328  0.09578068  3.01440523
-#> v[25] -0.77148674 0.7099261 -2.04790565  0.60050748
-#> v[26]  0.47685012 0.7054332 -0.95129397  2.12708828
-#> v[27]  0.26415565 0.7737525 -1.08873258  1.94640679
-#> v[28]  1.04560152 0.4962706  0.14640639  2.03711501
-#> v[29]  0.80995469 0.7839949 -0.28068586  2.44469111
-#> v[30]  1.52865418 0.8541867  0.20885108  3.05165411
-#> v[31]  0.40121995 0.6305752 -0.64229385  1.68319967
-#> v[32]  0.15909805 0.5044961 -0.71972688  1.12836390
-#> v[33]  0.14512840 0.5387659 -1.25674861  1.07377001
-#> v[34]  0.87835185 0.6600124 -0.18512457  2.35154680
-#> v[35]  2.64810355 0.8006772  1.33574917  4.21903674
-#> v[36]  2.02274589 0.9177265  0.64723607  3.78524746
+#>          Estimate Est.Error   l-95% CI    u-95% CI
+#> v[1]  -1.70777778 0.5615744 -2.7208200 -0.53584700
+#> v[2]  -0.62348113 0.5407259 -1.5325300  0.39827100
+#> v[3]  -0.74602832 0.6062077 -1.6947505  0.88533900
+#> v[4]   0.79347339 0.6170433 -0.3869757  2.07338000
+#> v[5]   1.29080042 0.6019364  0.1301480  2.38698000
+#> v[6]   1.33612016 0.6740930  0.1457082  2.56307000
+#> v[7]  -2.47138395 0.4894205 -3.3363000 -1.51118675
+#> v[8]  -2.46806509 0.5235362 -3.5355900 -1.46831975
+#> v[9]  -0.85671388 0.4312593 -1.7661300 -0.00823731
+#> v[10] -0.04103197 0.8487672 -1.3665100  1.48544000
+#> v[11]  1.96271967 0.5596277  0.9732730  3.11907000
+#> v[12]  1.23240446 0.8027274  0.0376673  3.29243000
+#> v[13] -1.42850757 0.5936887 -2.6070600 -0.39806500
+#> v[14] -1.28551098 0.6467259 -2.5734200 -0.21280700
+#> v[15] -0.89073273 0.6077328 -2.0483500  0.37112000
+#> v[16]  0.47921589 0.5202272 -0.4873143  1.59570000
+#> v[17]  1.59428106 0.6383524  0.5043970  2.97572850
+#> v[18]  0.88056914 0.8054164 -0.6073520  2.37332000
+#> v[19] -1.03484421 0.5855805 -2.1776300  0.21448500
+#> v[20] -0.45863612 0.5813516 -1.7739290  0.54978500
+#> v[21]  0.12756302 0.6535363 -0.9845299  1.33629000
+#> v[22] -0.12787467 0.4681625 -1.1592542  0.72765200
+#> v[23]  1.49304220 0.6450319  0.3711380  2.91233000
+#> v[24]  0.55243058 0.7081370 -0.5994950  1.99785000
+#> v[25] -0.69040380 0.6784015 -1.8384600  0.59901300
+#> v[26]  0.32374148 0.6780686 -0.7870770  1.80010000
+#> v[27]  0.53429165 0.8239444 -0.5974060  2.56700000
+#> v[28]  0.71534918 0.7362685 -0.7451820  2.04099000
+#> v[29]  0.32661605 0.7070538 -1.0471300  1.52953000
+#> v[30]  0.68515098 0.5722189 -0.3556202  1.83830000
+#> v[31]  0.34035027 0.8132982 -1.0117000  1.86383550
+#> v[32]  0.69916252 0.6441079 -0.6041560  1.91902375
+#> v[33]  0.13246887 1.0582490 -1.6042800  2.36532000
+#> v[34]  0.53846984 0.6486921 -0.2961370  2.23985000
+#> v[35]  2.02351080 0.4389761  1.2886105  2.93016000
+#> v[36]  1.13722282 0.5378629  0.1155438  2.21357000
 ```
 
 Extract the random effect variance for the areas:
@@ -172,51 +171,48 @@ Extract the random effect variance for the areas:
 ``` r
 model_sar_deff$refvar
 #>           Estimate Est.Error  l-95% CI u-95% CI
-#> a.var[1]  4.920737  46.68959 0.9311315 15.25944
-#> a.var[2]  4.837588  46.79251 0.8967958 15.18369
-#> a.var[3]  4.620072  46.82920 0.8333057 14.65618
-#> a.var[4]  4.620072  46.82920 0.8333057 14.65618
-#> a.var[5]  4.837588  46.79251 0.8967958 15.18369
-#> a.var[6]  4.920737  46.68959 0.9311315 15.25944
-#> a.var[7]  4.837588  46.79251 0.8967958 15.18369
-#> a.var[8]  4.793385  46.96290 0.8680262 15.27067
-#> a.var[9]  4.578069  47.00342 0.8075354 14.69694
-#> a.var[10] 4.578069  47.00342 0.8075354 14.69694
-#> a.var[11] 4.793385  46.96290 0.8680262 15.27067
-#> a.var[12] 4.837588  46.79251 0.8967958 15.18369
-#> a.var[13] 4.620072  46.82920 0.8333057 14.65618
-#> a.var[14] 4.578069  47.00342 0.8075354 14.69694
-#> a.var[15] 4.407630  47.05779 0.7676809 14.18318
-#> a.var[16] 4.407630  47.05779 0.7676809 14.18318
-#> a.var[17] 4.578069  47.00342 0.8075354 14.69694
-#> a.var[18] 4.620072  46.82920 0.8333057 14.65618
-#> a.var[19] 4.620072  46.82920 0.8333057 14.65618
-#> a.var[20] 4.578069  47.00342 0.8075354 14.69694
-#> a.var[21] 4.407630  47.05779 0.7676809 14.18318
-#> a.var[22] 4.407630  47.05779 0.7676809 14.18318
-#> a.var[23] 4.578069  47.00342 0.8075354 14.69694
-#> a.var[24] 4.620072  46.82920 0.8333057 14.65618
-#> a.var[25] 4.837588  46.79251 0.8967958 15.18369
-#> a.var[26] 4.793385  46.96290 0.8680262 15.27067
-#> a.var[27] 4.578069  47.00342 0.8075354 14.69694
-#> a.var[28] 4.578069  47.00342 0.8075354 14.69694
-#> a.var[29] 4.793385  46.96290 0.8680262 15.27067
-#> a.var[30] 4.837588  46.79251 0.8967958 15.18369
-#> a.var[31] 4.920737  46.68959 0.9311315 15.25944
-#> a.var[32] 4.837588  46.79251 0.8967958 15.18369
-#> a.var[33] 4.620072  46.82920 0.8333057 14.65618
-#> a.var[34] 4.620072  46.82920 0.8333057 14.65618
-#> a.var[35] 4.837588  46.79251 0.8967958 15.18369
-#> a.var[36] 4.920737  46.68959 0.9311315 15.25944
+#> a.var[1]  5.642536  117.8309 0.9090503 9.923105
+#> a.var[2]  5.562181  117.9993 0.8825991 9.770156
+#> a.var[3]  5.363471  118.0870 0.8346924 9.215804
+#> a.var[4]  5.363471  118.0870 0.8346924 9.215804
+#> a.var[5]  5.562181  117.9993 0.8825991 9.770156
+#> a.var[6]  5.642536  117.8309 0.9090503 9.923105
+#> a.var[7]  5.562181  117.9993 0.8825991 9.770156
+#> a.var[8]  5.514998  118.2661 0.8569749 9.745009
+#> a.var[9]  5.318879  118.3609 0.8128030 9.184931
+#> a.var[10] 5.318879  118.3609 0.8128030 9.184931
+#> a.var[11] 5.514998  118.2661 0.8569749 9.745009
+#> a.var[12] 5.562181  117.9993 0.8825991 9.770156
+#> a.var[13] 5.363471  118.0870 0.8346924 9.215804
+#> a.var[14] 5.318879  118.3609 0.8128030 9.184931
+#> a.var[15] 5.163913  118.4728 0.7729767 8.729135
+#> a.var[16] 5.163913  118.4728 0.7729767 8.729135
+#> a.var[17] 5.318879  118.3609 0.8128030 9.184931
+#> a.var[18] 5.363471  118.0870 0.8346924 9.215804
+#> a.var[19] 5.363471  118.0870 0.8346924 9.215804
+#> a.var[20] 5.318879  118.3609 0.8128030 9.184931
+#> a.var[21] 5.163913  118.4728 0.7729767 8.729135
+#> a.var[22] 5.163913  118.4728 0.7729767 8.729135
+#> a.var[23] 5.318879  118.3609 0.8128030 9.184931
+#> a.var[24] 5.363471  118.0870 0.8346924 9.215804
+#> a.var[25] 5.562181  117.9993 0.8825991 9.770156
+#> a.var[26] 5.514998  118.2661 0.8569749 9.745009
+#> a.var[27] 5.318879  118.3609 0.8128030 9.184931
+#> a.var[28] 5.318879  118.3609 0.8128030 9.184931
+#> a.var[29] 5.514998  118.2661 0.8569749 9.745009
+#> a.var[30] 5.562181  117.9993 0.8825991 9.770156
+#> a.var[31] 5.642536  117.8309 0.9090503 9.923105
+#> a.var[32] 5.562181  117.9993 0.8825991 9.770156
+#> a.var[33] 5.363471  118.0870 0.8346924 9.215804
+#> a.var[34] 5.363471  118.0870 0.8346924 9.215804
+#> a.var[35] 5.562181  117.9993 0.8825991 9.770156
+#> a.var[36] 5.642536  117.8309 0.9090503 9.923105
 ```
 
 ## References
 
 - Rao, J. N. K., & Molina, I. (2015). *Small Area Estimation* (2nd ed.).
   New Jersey: John Wiley & Sons, Inc. <doi:10.1002/9781118735855>.
-- Liu, B. (2009). *Hierarchical Bayes estimation and empirical best
-  prediction of small-area proportions*.
-  <https://api.drum.lib.umd.edu/server/api/core/bitstreams/cb8e2cbf-441e-4f0f-b4b3-6182f3cf24de/content>.
 - Liu, B., Lahiri, P., & Kalton, G. (2014). Hierarchical Bayes Modeling
   of Survey-Weighted Small Area Proportions. *Statistics Canada*.
   <https://www150.statcan.gc.ca/n1/pub/12-001-x/2014001/article/14030-eng.pdf>.
@@ -232,6 +228,14 @@ model_sar_deff$refvar
   Models for Small Area Estimation* (Research Report Series).
   Washington, D.C.: U.S. Census Bureau.
   <https://www.census.gov/content/dam/Census/library/working-papers/2020/adrm/RRS2020-07.pdf>.
+- Figueroa-Zúñiga, J. I., Arellano-Valle, R. B., & Ferrari, S. L. P.
+  (2013). Mixed beta regression: A Bayesian perspective. *Computational
+  Statistics & Data Analysis*, 61, 137-147.
+  <doi:10.1016/j.csda.2012.12.002>.
+- Denwood, M. J. (2016). runjags: An R Package Providing Interface
+  Utilities, Model Templates, Parallel Computing Methods and Additional
+  Distributions for MCMC Models in JAGS. *Journal of Statistical
+  Software*, 71(9), 1–25. <doi:10.18637/jss.v071.i09>.
 - Anselin, L. (1988). *Spatial Econometrics: Methods and Models*.
   Dordrecht: Springer Netherlands. <doi:10.1007/978-94-015-7799-1>.
 - Anselin, L., & Morrison, S. (2019). *Spatial Weights as Distance

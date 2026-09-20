@@ -18,15 +18,15 @@ knitr::opts_chunk$set(
 
 ## Introduction
 
-The `saeHB.Spatial.Beta` package provides several functions to estimate small area proportions using Hierarchical Bayesian (HB) methods under spatial and non-spatial models. This package is specifically designed to accommodate survey design effects (DEFF) and handle non-sampled areas.
+The `saeHB.Spatial.Beta` package provides several functions to estimate small area proportions using Hierarchical Bayesian (HB) methods under spatial and non-spatial models for area-level random effects. This package is specifically designed to accommodate survey design effects (DEFF) for sampling variances.
 
 In this vignette, we will demonstrate a complete analytical workflow:
 
-1. Calculating Direct Estimates.
-2. Fitting the HB Beta Deff Non-Spatial Model.
-3. Checking spatial autocorrelation on the random effects using Moran's I.
-4. Fitting the HB Beta Deff Spatial Models (SAR and Leroux CAR).
-5. Comparing the precision using Relative Standard Error (RSE).
+1. **Preparation and Data Loading**, including calculating the variance and RSE of the direct estimates to serve as a baseline.
+2. **Fitting the HB Beta Deff Non-Spatial Model**.
+3. **Spatial Autocorrelation Diagnostic** on the random effects using Moran's I.
+4. **Fitting the HB Beta Deff Spatial Models** (SAR and Leroux CAR).
+5. **Evaluation and Comparison** of estimation precision using Relative Standard Error (RSE).
 
 ## Model Specifications
 
@@ -41,7 +41,7 @@ With this specification, the expected value holds $E(\hat{\theta}_i \mid \theta_
 **2. Linking Model:**
 The true proportion $\theta_i$ is modeled using a logit link function:
 $$\text{logit}(\theta_i) = \mathbf{x}_i^T \boldsymbol{\beta} + v_i$$
-Or equivalently in a conditional distribution form: $\text{logit}(\theta_i) \mid \boldsymbol{\beta}, \sigma_v^2 \sim N(\mathbf{x}_i^T \boldsymbol{\beta}, \sigma_v^2)$. Here, $\mathbf{x}_i^T$ represents the vector of auxiliary variables, $\boldsymbol{\beta}$ the regression coefficients, and $v_i$ the area-specific spatial random effect.
+Here, $\mathbf{x}_i^T$ represents the vector of auxiliary variables, $\boldsymbol{\beta}$ the regression coefficients, and $v_i$ the area-specific random effect.
 
 **3. Spatial Random Effects:**
 To account for spatial dependency, the random effects vector $\mathbf{v} = (v_1, \dots, v_m)^T$ can be modeled using two different spatial structures:
@@ -60,7 +60,7 @@ b.  **Leroux CAR Model:** The random effects follow a Conditional Autoregressive
 
     $$\mathbf{Q}(\rho) = \frac{1}{\sigma_v^2} [(1 - \rho)\mathbf{I} + \rho(\mathbf{D} - \mathbf{W})]$$
 
-    Where $\mathbf{W}$ is the binary spatial adjacency matrix, $\mathbf{D}$ is a diagonal matrix containing the number of neighbors for each area, and $\rho \in [0,1]$ controls the spatial dependence.
+    Where $\mathbf{W}$ is the binary spatial adjacency matrix, $\mathbf{D}$ is a diagonal matrix containing the number of neighbors for each area, and $\rho \in [0,1)$ controls the spatial dependence.
 
 ## Step 1: Preparation and Data Loading
 
@@ -85,7 +85,7 @@ databeta$rse_direct <- (sqrt(var_direct) / databeta$y) * 100
 
 We begin by fitting a baseline non-spatial model that accommodates the survey design effect. Here, we use the default Markov Chain Monte Carlo (MCMC) iterations.
 
-*Note: By default, the function runs MCMC with a predefined number of iterations and burn-in periods. For real-world applications with complex datasets, you may need to adjust parameters such as iter.mcmc, burn.in, and thin to ensure convergence.*
+*Note: By default, the function runs MCMC with a predefined number of iterations and burn-in periods. For practical applications, you may need to adjust parameters such as iter.mcmc, burn.in, thin, and chains to ensure proper mixing and convergence.*
 
 ```{r ns-model, results='hide'}
 mod_ns_deff <- betadeff_nonspatial(
@@ -104,19 +104,19 @@ rse_ns_deff <- (mod_ns_deff$est$Est.Error / mod_ns_deff$est$Estimate) * 100
 
 ## Step 3: Spatial Autocorrelation Diagnostic (Moran's I)
 
-To determine if a spatial model is necessary, we evaluate the spatial autocorrelation of the random effects ($v$) from the non-spatial model. 
+To determine whether a spatial model is warranted, we evaluate the spatial autocorrelation of the random effects ($v$) obtained from the non-spatial model. We use a row-standardized spatial weight matrix for Moran's I testing.
 
-We use the **Monte Carlo Permutation** approach. This method is highly recommended because it computes the p-value empirically by shuffling the spatial units, making it robust. The Analytical approach (randomization) can be used as an alternative (`mc = FALSE`) for very large datasets where computational speed is a priority.
-
-```{r moran-test}
-# Load the spatial weight matrix for the diagnostic test
+```{r moran-weights}
 data("weight_mat")
 W_listw <- spdep::mat2listw(weight_mat, style = "W")
 
 # Extract the mean of the random effects (v)
 v_ns_deff <- as.numeric(mod_ns_deff$randeff$Estimate)
+```
 
-# Monte Carlo Permutation Approach
+Since our dataset has a relatively small number of areas ($m = 36$), we use the Monte Carlo permutation approach with 999 permutations, which computes the p-value empirically by randomly permuting the observed values. The analytical randomisation approach can be used as an alternative (`mc = FALSE`).
+
+```{r moran-test}
 set.seed(123) 
 moran_result <- moran_test(x = v_ns_deff, listw = W_listw, mc = TRUE, nsim = 999)
 print(moran_result)
@@ -160,7 +160,7 @@ rse_leroux_deff <- (mod_leroux_deff$est$Est.Error / mod_leroux_deff$est$Estimate
 
 ## Step 5: Evaluation and Comparison
 
-We compare the performance of the Direct Estimator, the Non-Spatial Model, and the Spatial Models. A lower RSE indicates a more reliable and precise estimate. 
+We compare the performance of the Direct Estimator, the HB Beta Deff Non-Spatial Model, and the HB Beta Deff Spatial Models (SAR and Leroux CAR). A lower RSE indicates a more reliable and precise estimate.
 
 First, let's look at the summary statistics of the RSEs provided by the SAE models compared to the direct estimates.
 
@@ -178,9 +178,9 @@ calc_stats <- function(x) {
 
 rse_summary <- data.frame(
   Direct = calc_stats(databeta$rse_direct),
-  `Non-Spatial` = calc_stats(rse_ns_deff),
-  `Spatial SAR` = calc_stats(rse_sar_deff),
-  `Spatial Leroux` = calc_stats(rse_leroux_deff),
+  `HB Beta Deff Non-Spatial` = calc_stats(rse_ns_deff),
+  `HB Beta Deff Spatial Leroux CAR` = calc_stats(rse_leroux_deff),
+  `HB Beta Deff Spatial SAR` = calc_stats(rse_sar_deff),
   check.names = FALSE
 )
 
@@ -188,7 +188,7 @@ knitr::kable(
   rse_summary, 
   digits = 2, 
   align = "c",
-  caption = "Descriptive Statistics of Relative Standard Error (RSE) in %"
+  caption = "Descriptive Statistics of Relative Standard Error (RSE) (%)"
 )
 ```
 
@@ -223,15 +223,15 @@ ggplot(df_rse, aes(x = Area_Index)) +
   geom_point(aes(y = Spatial_SAR, color = "HB Beta Deff Spatial SAR"), size = 2) +
   
   # Spatial Leroux CAR
-  geom_line(aes(y = Spatial_Leroux, color = "HB Beta Deff Spatial Leroux"), linewidth = 1) +
-  geom_point(aes(y = Spatial_Leroux, color = "HB Beta Deff Spatial Leroux"), size = 2) +
+  geom_line(aes(y = Spatial_Leroux, color = "HB Beta Deff Spatial Leroux CAR"), linewidth = 1) +
+  geom_point(aes(y = Spatial_Leroux, color = "HB Beta Deff Spatial Leroux CAR"), size = 2) +
   
   scale_color_manual(
     name = "Estimator",
     values = c("Direct" = "#E69F00", 
                "HB Beta Deff Non-Spatial" = "#56B4E9", 
                "HB Beta Deff Spatial SAR" = "#009E73",
-               "HB Beta Deff Spatial Leroux" = "#D55E00")
+               "HB Beta Deff Spatial Leroux CAR" = "#D55E00")
   ) +
   labs(
     title = "Comparison of Relative Standard Error (RSE)",

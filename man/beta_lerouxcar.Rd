@@ -12,7 +12,8 @@ beta_lerouxcar(
   iter.mcmc = 2000,
   thin = 1,
   burn.in = 1000,
-  chains = 2,
+  chains = 4,
+  n.sims = chains,
   n.adapt = 1000,
   coef = NULL,
   var.coef = NULL,
@@ -38,7 +39,9 @@ beta_lerouxcar(
 
 \item{burn.in}{Number of burn-in iterations discarded from each MCMC chain. Default is \code{1000}.}
 
-\item{chains}{Number of parallel MCMC chains. Default is \code{2}.}
+\item{chains}{Number of parallel MCMC chains. Default is \code{4}.}
+
+\item{n.sims}{The maximum number of parallel JAGS simulations allowed to run concurrently. Default is equal to \code{chains}.}
 
 \item{n.adapt}{Number of iterations used for the adaptation phase in JAGS. Default is \code{1000}.}
 

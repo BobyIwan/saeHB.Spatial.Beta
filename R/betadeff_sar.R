@@ -11,7 +11,8 @@
 #' @param iter.mcmc Total number of MCMC iterations per chain. Default is \code{2000}.
 #' @param thin Thinning rate for MCMC sampling. Must be a positive integer. Default is \code{1}.
 #' @param burn.in Number of burn-in iterations discarded from each MCMC chain. Default is \code{1000}.
-#' @param chains Number of parallel MCMC chains. Default is \code{2}.
+#' @param chains Number of parallel MCMC chains. Default is \code{4}.
+#' @param n.sims The maximum number of parallel JAGS simulations allowed to run concurrently. Default is equal to \code{chains}.
 #' @param n.adapt Number of iterations used for the adaptation phase in JAGS. Default is \code{1000}.
 #' @param coef Optional vector specifying the prior means of the regression coefficients, including the intercept.
 #' @param var.coef Optional vector containing the variances of the prior distribution of the regression model coefficients.
@@ -56,7 +57,7 @@
 #' result$coefficient
 #' }
 #'
-#' @import rjags
+#' @import runjags
 #' @import coda
 #' @import stats
 #' @import grDevices
@@ -65,7 +66,7 @@
 #' @export betadeff_sar
 betadeff_sar <- function(formula, deff, n_i, proxmat, data,
                          iter.update = 3, iter.mcmc = 2000,
-                         thin = 1, burn.in = 1000, chains = 2, n.adapt = 1000,
+                         thin = 1, burn.in = 1000, chains = 4, n.sims = chains, n.adapt = 1000,
                          coef = NULL, var.coef = NULL, tau.u = 1,
                          seed = 123, quiet = FALSE, plot = TRUE, keep.fit = FALSE) {
 
@@ -109,6 +110,9 @@ betadeff_sar <- function(formula, deff, n_i, proxmat, data,
   if (tau.u <= 0) stop("tau.u must be positive.")
   if (seed <= 0) stop("seed must be positive.")
 
+  if (n.sims < 1) stop("n.sims must be >= 1.")
+  if (n.sims > chains) stop("n.sims cannot exceed the number of chains.")
+
   xmat <- stats::model.matrix(formula, data = formuladata)
   X    <- as.matrix(xmat[, -1, drop = FALSE])
   P    <- ncol(X)
@@ -133,8 +137,9 @@ betadeff_sar <- function(formula, deff, n_i, proxmat, data,
     stop("Unable to determine a finite admissible interval for rho based on spatial weights.")
   }
 
-  rho.min <- 1 / min(eig_neg)
-  rho.max <- 1 / max(eig_pos)
+  eps <- 0.0001
+  rho.min <- (1 / min(eig_neg)) * (1 - eps)
+  rho.max <- (1 / max(eig_pos)) * (1 - eps)
 
   mu_beta  <- if (!is.null(coef)) coef else rep(0, nvar)
   tau_beta <- if (!is.null(var.coef)) 1/var.coef else rep(1, nvar)
@@ -168,6 +173,7 @@ betadeff_sar <- function(formula, deff, n_i, proxmat, data,
     for (k in 1:(P+1)) {
       beta[k] ~ dnorm(mu_beta[k], tau_beta[k])
     }
+
     tau_u ~ dgamma(tau.ua, tau.ub)
     rho ~ dunif(rho_min, rho_max)
     sigma2_u <- 1 / tau_u
@@ -193,6 +199,7 @@ betadeff_sar <- function(formula, deff, n_i, proxmat, data,
     for (k in 1:(P+1)) {
       beta[k] ~ dnorm(mu_beta[k], tau_beta[k])
     }
+
     tau_u ~ dgamma(tau.ua, tau.ub)
     rho ~ dunif(rho_min, rho_max)
     sigma2_u <- 1 / tau_u
@@ -200,26 +207,44 @@ betadeff_sar <- function(formula, deff, n_i, proxmat, data,
 
   params <- c("mu", "beta", "rho", "tau_u", "sigma2_u", "v")
 
+  n_sample_real <- floor((iter.mcmc - burn.in) / thin)
+  if (n_sample_real < 1) stop("The effective number of samples (iter.mcmc - burn.in) / thin must be at least 1.")
+
   if (!any(is.na(y_all))) {
     for (i in 1:iter.update) {
       dat <- list(N = N, P = P, y = y_all, X = X, deff = deff, n_i = n_i,
                   W = W, I = I, O = O, mu_beta = mu_beta, tau_beta = tau_beta,
                   tau.ua = tau.ua, tau.ub = tau.ub, rho_min = rho.min, rho_max = rho.max)
 
-      jags.m <- rjags::jags.model(file = textConnection(model_sampled), data = dat,
-                                  inits = inits_list, n.chains = chains, n.adapt = n.adapt, quiet = quiet)
+      runjags_out <- runjags::run.jags(
+        model = model_sampled,
+        monitor = params,
+        data = dat,
+        inits = inits_list,
+        n.chains = chains,
+        n.sims = n.sims,
+        adapt = n.adapt,
+        burnin = burn.in,
+        sample = n_sample_real,
+        thin = thin,
+        method = "parallel",
+        silent.jags = quiet
+      )
 
-      samps <- rjags::coda.samples(jags.m, params, n.iter = iter.mcmc, thin = thin,
-                                   progress.bar = if(quiet) "none" else "text")
-      samps1 <- stats::window(samps, start = start(samps) + burn.in)
+      samps1 <- coda::as.mcmc.list(runjags_out)
 
       res_sum = summary(samps1)
-      beta_temp = res_sum$statistics[grep("^beta\\[", rownames(res_sum$statistics)), 1:2]
-      for (k in 1:nvar) {
-        mu_beta[k]  = beta_temp[k, 1]
-        tau_beta[k] = 1/(beta_temp[k, 2]^2)
+      beta_names   <- paste0("beta[", seq_len(nvar), "]")
+      beta_row_idx <- match(beta_names, rownames(res_sum$statistics))
+      if (anyNA(beta_row_idx)) stop("Beta parameters not found in MCMC output.")
+      beta_temp <- res_sum$statistics[beta_row_idx, 1:2, drop = FALSE]
+
+      for (k in seq_len(nvar)) {
+        mu_beta[k]  <- beta_temp[k, 1]
+        tau_beta[k] <- 1/(beta_temp[k, 2]^2)
       }
-      tau_idx = grep("^tau_u", rownames(res_sum$statistics))
+      tau_idx <- match("tau_u", rownames(res_sum$statistics))
+      if (is.na(tau_idx)) stop("tau_u not found in MCMC output.")
       tau.ua = res_sum$statistics[tau_idx, 1]^2 / res_sum$statistics[tau_idx, 2]^2
       tau.ub = res_sum$statistics[tau_idx, 1] / res_sum$statistics[tau_idx, 2]^2
     }
@@ -235,20 +260,35 @@ betadeff_sar <- function(formula, deff, n_i, proxmat, data,
                   mu_beta = mu_beta, tau_beta = tau_beta, tau.ua = tau.ua, tau.ub = tau.ub,
                   rho_min = rho.min, rho_max = rho.max)
 
-      jags.m <- rjags::jags.model(file = textConnection(model_nonsampled), data = dat,
-                                  inits = inits_list, n.chains = chains, n.adapt = n.adapt, quiet = quiet)
+      runjags_out <- runjags::run.jags(
+        model = model_nonsampled,
+        monitor = params,
+        data = dat,
+        inits = inits_list,
+        n.chains = chains,
+        n.sims = n.sims,
+        adapt = n.adapt,
+        burnin = burn.in,
+        sample = n_sample_real,
+        thin = thin,
+        method = "parallel",
+        silent.jags = quiet
+      )
 
-      samps <- rjags::coda.samples(jags.m, params, n.iter = iter.mcmc, thin = thin,
-                                   progress.bar = if(quiet) "none" else "text")
-      samps1 <- stats::window(samps, start = start(samps) + burn.in)
+      samps1 <- coda::as.mcmc.list(runjags_out)
 
       res_sum = summary(samps1)
-      beta_temp = res_sum$statistics[grep("^beta\\[", rownames(res_sum$statistics)), 1:2]
-      for (k in 1:nvar) {
-        mu_beta[k]  = beta_temp[k, 1]
-        tau_beta[k] = 1/(beta_temp[k, 2]^2)
+      beta_names   <- paste0("beta[", seq_len(nvar), "]")
+      beta_row_idx <- match(beta_names, rownames(res_sum$statistics))
+      if (anyNA(beta_row_idx)) stop("Beta parameters not found in MCMC output.")
+      beta_temp <- res_sum$statistics[beta_row_idx, 1:2, drop = FALSE]
+
+      for (k in seq_len(nvar)) {
+        mu_beta[k]  <- beta_temp[k, 1]
+        tau_beta[k] <- 1/(beta_temp[k, 2]^2)
       }
-      tau_idx = grep("^tau_u", rownames(res_sum$statistics))
+      tau_idx <- match("tau_u", rownames(res_sum$statistics))
+      if (is.na(tau_idx)) stop("tau_u not found in MCMC output.")
       tau.ua = res_sum$statistics[tau_idx, 1]^2 / res_sum$statistics[tau_idx, 2]^2
       tau.ub = res_sum$statistics[tau_idx, 1] / res_sum$statistics[tau_idx, 2]^2
     }
@@ -256,6 +296,7 @@ betadeff_sar <- function(formula, deff, n_i, proxmat, data,
 
   # Output
   res_sum <- summary(samps1)
+
   ESS <- coda::effectiveSize(samps1)
   if (chains > 1) {
     Rhat_raw <- coda::gelman.diag(samps1, multivariate = FALSE, autoburnin = FALSE)$psrf[, 1]
@@ -263,11 +304,15 @@ betadeff_sar <- function(formula, deff, n_i, proxmat, data,
     Rhat_raw <- rep(NA, length(ESS))
   }
 
-  mu_idx <- grep("^mu\\[", rownames(res_sum$statistics))
+  mu_names <- paste0("mu[", 1:N, "]")
+  mu_idx <- match(mu_names, rownames(res_sum$statistics))
+  if (anyNA(mu_idx)) stop("mu parameters not found in MCMC output.")
   estimation <- data.frame(res_sum$statistics[mu_idx, 1:2], res_sum$quantiles[mu_idx, c(1,5)])
   colnames(estimation) <- c("Estimate", "Est.Error", "l-95% CI", "u-95% CI")
 
-  v_idx <- grep("^v\\[", rownames(res_sum$statistics))
+  v_names <- paste0("v[", 1:N, "]")
+  v_idx <- match(v_names, rownames(res_sum$statistics))
+  if (anyNA(v_idx)) stop("v parameters not found in MCMC output.")
   randeff <- data.frame(res_sum$statistics[v_idx, 1:2], res_sum$quantiles[v_idx, c(1,5)])
   colnames(randeff) <- c("Estimate", "Est.Error", "l-95% CI", "u-95% CI")
 
@@ -294,8 +339,11 @@ betadeff_sar <- function(formula, deff, n_i, proxmat, data,
   rownames(refvar) <- paste0("a.var[", 1:N, "]")
   colnames(refvar) <- c("Estimate", "Est.Error", "l-95% CI", "u-95% CI")
 
-  b_idx <- grep("^beta\\[", rownames(res_sum$statistics))
-  rho_idx <- grep("^rho", rownames(res_sum$statistics))
+  beta_names <- paste0("beta[", seq_len(nvar), "]")
+  b_idx <- match(beta_names, rownames(res_sum$statistics))
+  if (anyNA(b_idx)) stop("Beta parameters not found in MCMC output.")
+  rho_idx <- match("rho", rownames(res_sum$statistics))
+  if (is.na(rho_idx)) stop("rho not found in MCMC output.")
 
   coef_stats <- rbind(res_sum$statistics[b_idx, 1:2, drop = FALSE],
                       res_sum$statistics[rho_idx, 1:2, drop = FALSE])
@@ -305,11 +353,7 @@ betadeff_sar <- function(formula, deff, n_i, proxmat, data,
   coef_ess  <- c(ESS[b_idx], ESS[rho_idx])
   coefficient <- data.frame(coef_stats, coef_quant, coef_rhat, coef_ess)
 
-  b_varnames <- character(nvar)
-  for (i in 1:nvar) {
-    b_varnames[i] <- paste0("beta[", i - 1, "]")
-  }
-  rownames(coefficient) <- c(b_varnames, "rho")
+  rownames(coefficient) <- c(paste0("beta[", seq_len(nvar) - 1, "]"), "rho")
   colnames(coefficient) <- c("Estimate", "Est.Error", "l-95% CI", "u-95% CI", "Rhat", "ESS")
 
   result$est         <- estimation

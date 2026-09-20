@@ -21,7 +21,7 @@ moran_test(
 
 \item{alternative}{A character string specifying the alternative hypothesis. Must be one of \code{"greater"} (default), \code{"less"}, or \code{"two.sided"}.}
 
-\item{mc}{Logical; if \code{TRUE}, performs Moran's I test using Monte Carlo permutations. Default is \code{FALSE} (analytical approach).}
+\item{mc}{Logical; if \code{TRUE}, performs Moran's I test using Monte Carlo permutations. If \code{FALSE}, performs the analytical test under the randomisation assumption. Default is \code{FALSE}.}
 
 \item{nsim}{An integer specifying the number of permutations if \code{mc = TRUE}. Default is \code{999}.}
 

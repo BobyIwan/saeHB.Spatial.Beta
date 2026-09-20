@@ -18,7 +18,7 @@
 #' @param x A numeric vector of the variable of interest (e.g., residuals, random effects, or raw data).
 #' @param listw A \code{listw} object containing spatial weights, typically created by \code{build_w()}.
 #' @param alternative A character string specifying the alternative hypothesis. Must be one of \code{"greater"} (default), \code{"less"}, or \code{"two.sided"}.
-#' @param mc Logical; if \code{TRUE}, performs Moran's I test using Monte Carlo permutations. Default is \code{FALSE} (analytical approach).
+#' @param mc Logical; if \code{TRUE}, performs Moran's I test using Monte Carlo permutations. If \code{FALSE}, performs the analytical test under the randomisation assumption. Default is \code{FALSE}.
 #' @param nsim An integer specifying the number of permutations if \code{mc = TRUE}. Default is \code{999}.
 #' @param zero.policy Logical; if \code{TRUE}, allows areas with no neighbors (isolates) to be included in the calculation. Default is \code{TRUE}.
 #' @param na.rm Logical; if \code{TRUE}, missing values in \code{x} are removed, and the corresponding rows/columns in the spatial weights are automatically subsetted. Default is \code{TRUE}.
@@ -125,13 +125,11 @@ moran_test <- function(x,
                            nsim = nsim,
                            alternative = alternative,
                            zero.policy = zero.policy)
-    res$method <- "Moran's I test under Monte Carlo permutation"
   } else {
     res <- spdep::moran.test(x = x_clean,
                              listw = listw,
                              alternative = alternative,
                              zero.policy = zero.policy)
-    res$method <- "Moran's I test under randomization (analytical)"
   }
 
   res$data.name <- var_name

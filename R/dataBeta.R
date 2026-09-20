@@ -10,7 +10,7 @@
 #'
 #' \enumerate{
 #'   \item Generate auxiliary variables \eqn{x1 \sim N(0, 1)} and \eqn{x2 \sim N(0, 1)}.
-#'   \item Generate sample sizes \eqn{n_i \sim U(10, 50)} and survey design effects \eqn{deff_i \sim U(1, 2.5)}. Calculate the precision parameter for each area: \eqn{\phi_i = (n_i / deff_i) - 1}.
+#'   \item Generate sample sizes \eqn{n_i} from a discrete uniform distribution over integers between 10 and 50, and survey design effects \eqn{deff_i \sim U(1, 2.5)} (rounded to two decimal places). Calculate the precision parameter for each area: \eqn{\phi_i = (n_i / deff_i) - 1}.
 #'   \item Generate spatial random effects under the SAR model. First, generate independent normal errors \eqn{u \sim N(0, 1)}. Then, calculate the spatial random effect \eqn{v = (I - \rho W)^{-1}u}, where \eqn{I} is an identity matrix, \eqn{W} is the row-standardized proximity matrix (\code{weight_mat}), and the spatial autoregressive parameter \eqn{\rho} is set to 0.70.
 #'   \item Calculate the true mean proportions \eqn{\mu = \text{logit}^{-1}(X\beta + v)}, where the regression coefficients are set as \eqn{\beta_0 = \beta_1 = \beta_2 = 1}.
 #'   \item Generate the response variable \eqn{y \sim \text{Beta}(\mu \phi, (1 - \mu) \phi)}. Values are strictly bounded between 0 and 1.

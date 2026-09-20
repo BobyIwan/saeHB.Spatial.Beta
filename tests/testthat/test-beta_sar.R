@@ -11,10 +11,12 @@ test_that("Unit Testing for beta_sar: Execution and Output Format", {
 
       iter.mcmc = 100,
       burn.in = 50,
+      chains = 2,
       quiet = TRUE
     )
     dev.off()
     expect_true(is.list(res_sampled))
+    expect_equal(rownames(res_sampled$coefficient), c("beta[0]", "beta[1]", "beta[2]", "rho", "phi"))
 
     # Case 2: Data with non-sampled areas (NA) executes successfully
     res_nonsampled <- beta_sar(
@@ -24,11 +26,13 @@ test_that("Unit Testing for beta_sar: Execution and Output Format", {
 
       iter.mcmc = 100,
       burn.in = 50,
+      chains = 2,
 
       quiet = TRUE,
       plot = FALSE
     )
     expect_true(is.list(res_nonsampled))
+    expect_equal(rownames(res_nonsampled$coefficient), c("beta[0]", "beta[1]", "beta[2]", "rho", "phi"))
   })
 })
 
@@ -105,5 +109,21 @@ test_that("Unit Testing for beta_sar: Error Handling", {
   expect_error(
     beta_sar(y ~ x1 + x2, proxmat = W_bad_eig, data = databeta_sub, plot = FALSE),
     "Unable to determine a finite admissible interval for rho"
+  )
+
+  # Case 10: n.sims validation errors
+  expect_error(
+    beta_sar(y ~ x1 + x2, proxmat = weight_mat, data = databeta, n.sims = 0, plot = FALSE),
+    "n.sims must be >= 1"
+  )
+  expect_error(
+    beta_sar(y ~ x1 + x2, proxmat = weight_mat, data = databeta, chains = 2, n.sims = 3, plot = FALSE),
+    "n.sims cannot exceed the number of chains"
+  )
+
+  # Case 11: Effective sample size validation error for runjags
+  expect_error(
+    beta_sar(y ~ x1 + x2, proxmat = weight_mat, data = databeta, iter.mcmc = 100, burn.in = 99, thin = 2, plot = FALSE),
+    "The effective number of samples"
   )
 })

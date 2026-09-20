@@ -87,10 +87,10 @@ The function supports the following spatial weight construction methods:
 
 \strong{Important note on \code{style} for HB Beta Spatial models:}
 \itemize{
-  \item \code{style = "W"}: Returns a row-standardized weights matrix (rows sum to 1). This is the required format for HB Beta Spatial Autoregressive (SAR) models.
-  \item \code{style = "B"}: Returns a binary adjacency matrix (all positive weights are forcefully converted to 1). This is the required format for HB Beta Conditional Autoregressive (CAR) models, specifically the Leroux CAR model.
+  \item \code{style = "W"}: Returns a row-standardized weights matrix, where non-isolated rows are standardized to sum to 1. Isolated areas may have zero-weight rows when \code{zero.policy = TRUE}. This is the required format for HB Beta Spatial Autoregressive (SAR) models.
+  \item \code{style = "B"}: Returns a binary adjacency matrix (all positive weights are forcefully converted to 1). This is the required format for HB Beta Conditional Autoregressive (CAR) models, specifically the Leroux CAR model. When \code{style = "B"}, the resulting neighbour structure is forced to be symmetric (using \code{spdep::make.sym.nb()}) for methods that can otherwise produce asymmetric neighbour relations (Contiguity, particularly when a fallback connection is applied, KNN, and Inverse Distance/Exponential without \code{dmax}).
 }
-For continuous weighting methods (Inverse Distance, Exponential, Kernel), using \code{style = "B"} will ignore the calculated continuous weights and binarize the connections. Therefore, if you intend to use Leroux CAR models, Contiguity or KNN are naturally recommended. For SAR models, all methods (including continuous ones) are fully supported and will preserve their weights using \code{style = "W"}.
+For continuous weighting methods (Inverse Distance, Exponential, Kernel), using \code{style = "B"} will ignore the calculated continuous weights and binarize the connections. Contiguity or KNN are therefore a more natural fit for Leroux CAR models, since their neighbourhood structure is already binary by design. Continuous methods remain usable with \code{style = "B"}, but their distance-based weighting information is discarded in the process.
 }
 \examples{
 library(sf)
@@ -150,5 +150,24 @@ W_kernel <- build_w(
   output = "matrix"
 )
 head(W_kernel)
+
+# 4. Fallback Mechanism (Handling Isolated Areas)
+# Create polygons where one area is isolated (e.g., an island)
+p1 <- st_polygon(list(rbind(c(0,0), c(1,0), c(1,1), c(0,1), c(0,0))))
+p2 <- st_polygon(list(rbind(c(1,0), c(2,0), c(2,1), c(1,1), c(1,0))))
+p3 <- st_polygon(list(rbind(c(10,10), c(11,10), c(11,11), c(10,11), c(10,10))))
+islands_sf <- st_sf(id = 1:3, geometry = st_sfc(p1, p2, p3))
+
+# Without fallback, the isolated area (area 3) remains isolated
+W_none <- build_w(islands_sf, method = "contiguity", contiguity = "queen",
+                   fallback = "none", style = "B", output = "all")
+W_none$diag$n_isolates_after
+
+# With KNN fallback, the isolated area is connected automatically,
+# and symmetry is guaranteed for style = "B"
+W_fallback <- build_w(islands_sf, method = "contiguity", contiguity = "queen",
+                       fallback = "knn", fallback_k = 1, style = "B", output = "all")
+W_fallback$diag$n_isolates_after
+isSymmetric(W_fallback$W)
 
 }
